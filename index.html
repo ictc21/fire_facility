@@ -1,0 +1,1463 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>소방시설 활용 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Mono:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 상단 역할 탭 + 본문. 관리자 화면은 편집기(좌)·속성(우) 2열, 현장카드는 한 손 조작용 1열 + 하단 고정 탭. */
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --surface2:#f6f8fb; --ink:#121821; --muted:#566273; --line:#d3dae4;
+  --signal:#c4122f; --signal-ink:#ffffff; --amber:#b77900; --amber-bg:#fff4d6; --ok:#17804a; --ok-bg:#e3f5ea;
+  --blue:#1f4fc2; --blue-bg:#e6edfb; --danger-bg:#fde7ea; --panel:#1b2433; --panel-ink:#f3f5f9;
+  --g-alarm:#b77900; --g-ext:#c4122f; --g-act:#1f4fc2;
+  --f-display:"Gothic A1","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1117; --surface:#151b24; --surface2:#1b232f; --ink:#e7ebf1; --muted:#9aa6b6; --line:#2a3443;
+  --signal:#ff4a5f; --signal-ink:#14080a; --amber:#ffc23d; --amber-bg:#2f2610; --ok:#45d18a; --ok-bg:#10291c;
+  --blue:#7ea2ff; --blue-bg:#16213a; --danger-bg:#331217; --panel:#0a0e14; --panel-ink:#e7ebf1;
+  --g-alarm:#d9a21f; --g-ext:#ff4a5f; --g-act:#6f97ff; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0d1117; --surface:#151b24; --surface2:#1b232f; --ink:#e7ebf1; --muted:#9aa6b6; --line:#2a3443;
+  --signal:#ff4a5f; --signal-ink:#14080a; --amber:#ffc23d; --amber-bg:#2f2610; --ok:#45d18a; --ok-bg:#10291c;
+  --blue:#7ea2ff; --blue-bg:#16213a; --danger-bg:#331217; --panel:#0a0e14; --panel-ink:#e7ebf1;
+  --g-alarm:#d9a21f; --g-ext:#ff4a5f; --g-act:#6f97ff; color-scheme:dark;}
+/* 현장 고대비 모드: 연기·야간 전제의 단일 룩 */
+.hc{--bg:#000; --surface:#0b0b0b; --surface2:#151515; --ink:#fff; --muted:#d0d0d0; --line:#5a5a5a;
+  --signal:#ff3b4f; --signal-ink:#000; --amber:#ffd400; --amber-bg:#2a2300; --ok:#3dff8f; --ok-bg:#002a12;
+  --blue:#7fb0ff; --blue-bg:#001a3a; --danger-bg:#3a0008; --g-alarm:#ffd400; --g-ext:#ff3b4f; --g-act:#7fb0ff; color-scheme:dark;}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.25}
+h2{font-size:1.35rem;font-weight:800}
+h3{font-size:1.1rem;font-weight:800}
+h4{font-size:1rem;font-weight:700}
+p{margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--panel);color:var(--panel-ink);}
+.top-in{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;max-width:1280px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:800;font-size:1.05rem;letter-spacing:-.01em}
+.brand .qr{width:26px;height:26px;border:2px solid currentColor;border-radius:3px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
+.brand .qr i{background:currentColor;border-radius:1px}.brand .qr i:nth-child(2n){opacity:.25}
+.brand small{font-family:var(--f-body);font-weight:500;opacity:.7;font-size:.75rem}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.tab{background:transparent;border:1px solid transparent;color:inherit;padding:7px 12px;border-radius:var(--r);cursor:pointer;font-weight:600;font-size:.9rem;opacity:.78}
+.tab:hover{opacity:1;border-color:rgba(255,255,255,.25)}
+.tab[aria-current="true"]{opacity:1;background:var(--signal);color:#fff;border-color:var(--signal)}
+.sess{font-size:.78rem;opacity:.8;display:flex;gap:8px;align-items:center}
+.sess button{background:transparent;border:1px solid rgba(255,255,255,.3);color:inherit;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.75rem}
+
+main{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:20px 80px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.spread{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.sect-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.eyebrow{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:7px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--muted)}
+.btn.pri{background:var(--signal);border-color:var(--signal);color:#fff}
+.btn.ghost{background:transparent}
+.btn.warn{border-color:var(--signal);color:var(--signal)}
+.btn.sm{min-height:30px;padding:3px 10px;font-size:.85rem}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.pg{font-family:var(--f-mono);font-size:.75rem;font-weight:600;color:var(--blue);background:var(--blue-bg);border-radius:3px;padding:1px 6px;white-space:nowrap}
+.pg.ext{color:var(--amber);background:var(--amber-bg)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:700;border-radius:999px;padding:2px 10px;border:1px solid var(--line);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.chip.un{background:var(--amber-bg);color:var(--amber);border-color:transparent}
+.chip.bad{background:var(--danger-bg);color:var(--signal);border-color:transparent}
+
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:600;color:var(--muted);min-width:0}
+label.f input,label.f select,label.f textarea,.inp{border:1px solid var(--line);background:var(--surface2);border-radius:var(--r);padding:8px 10px;color:var(--ink);font-weight:400;font-size:.95rem;width:100%;min-width:0}
+textarea{resize:vertical;min-height:70px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+
+/* facility glyph */
+.fg{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;color:#fff;font-weight:800;font-size:.66rem;letter-spacing:-.03em;flex:none;font-family:var(--f-body)}
+.fg.alarm{background:var(--g-alarm);color:#000}.fg.ext{background:var(--g-ext)}.fg.act{background:var(--g-act)}
+.fg.lg{width:44px;height:44px;font-size:.82rem}
+
+/* warnings */
+.warn-box{display:flex;gap:10px;border-radius:var(--r);padding:10px 12px;border:1px solid transparent;align-items:flex-start}
+.warn-box b.k{font-family:var(--f-display);font-size:.8rem;white-space:nowrap;padding-top:1px}
+.warn-box.danger{background:var(--danger-bg);border-color:var(--signal)}
+.warn-box.danger b.k{color:var(--signal)}
+.warn-box.caution{background:var(--amber-bg)}
+.warn-box.caution b.k{color:var(--amber)}
+.warn-box.info{background:var(--surface2);border-color:var(--line)}
+.warn-box.info b.k{color:var(--muted)}
+.warn-box div{min-width:0}
+
+/* procedure */
+.proc{border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.proc>summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.proc>summary::-webkit-details-marker{display:none}
+.proc>summary h4{flex:1;min-width:0}
+.proc>summary::after{content:"+";font-family:var(--f-mono);font-weight:700;color:var(--muted)}
+.proc[open]>summary::after{content:"−"}
+.proc .body{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+.apply{font-size:.85rem;display:flex;gap:8px;flex-wrap:wrap}
+.apply b{background:var(--panel);color:var(--panel-ink);font-size:.72rem;padding:1px 8px;border-radius:3px}
+.sit{background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r);padding:10px 12px}
+.sit b{color:var(--amber);font-size:.85rem}
+.sit ul{margin:4px 0 0;padding-left:18px}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0}
+.steps>li{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:10px 0;border-top:1px dashed var(--line);align-items:start}
+.steps>li:first-child{border-top:0}
+.sn{font-family:var(--f-mono);font-size:.75rem;font-weight:700;background:var(--blue);color:#fff;border-radius:3px;padding:3px 8px;white-space:nowrap}
+.hc .sn{color:#000}
+.steps ul{margin:4px 0 0;padding-left:18px;color:var(--ink)}
+.steps li>div{min-width:0}
+.emer{border-left:4px solid var(--signal);padding:6px 12px;background:var(--surface2)}
+.emer b{color:var(--signal);font-size:.85rem}
+.emer ul{margin:4px 0 0;padding-left:18px}
+.note{font-size:.85rem;color:var(--muted)}
+
+/* layouts */
+.mgr{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:980px){.mgr{grid-template-columns:minmax(0,1fr)}}
+.subtabs{display:flex;gap:2px;border-bottom:2px solid var(--line);flex-wrap:wrap}
+.subtab{background:none;border:0;padding:8px 12px;font-weight:700;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px}
+.subtab[aria-current="true"]{color:var(--ink);border-bottom-color:var(--signal)}
+
+/* plan editor */
+.toolbar{display:flex;flex-wrap:wrap;gap:4px}
+.tool{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:4px 8px 4px 4px;cursor:pointer;font-size:.8rem;font-weight:600}
+.tool[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--surface2)}
+.tool .fg{width:24px;height:24px;font-size:.58rem}
+.lmk{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:4px;font-size:.6rem;font-weight:800;color:#fff;background:var(--panel)}
+.planwrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+svg.plan{display:block;width:100%;min-width:560px;height:auto;touch-action:none;user-select:none}
+.field svg.plan{min-width:0}
+svg.plan .room rect{fill:var(--surface2);stroke:var(--muted);stroke-width:2}
+svg.plan .room text{fill:var(--muted);font-size:14px;font-weight:600;font-family:var(--f-body)}
+svg.plan .gridl{stroke:var(--line);stroke-width:1}
+svg.plan .mk{cursor:pointer}
+svg.plan .mk text{font-family:var(--f-body);font-weight:800;pointer-events:none}
+svg.plan .sel{stroke:var(--ink);stroke-width:3;fill:none;stroke-dasharray:5 4}
+svg.plan .hl{fill:none;stroke:var(--signal);stroke-width:4}
+@media (prefers-reduced-motion:no-preference){svg.plan .hl{animation:pulse 1.2s ease-in-out infinite}}
+@keyframes pulse{0%,100%{stroke-opacity:1}50%{stroke-opacity:.2}}
+
+table.t{width:100%;border-collapse:collapse;font-size:.9rem}
+table.t th,table.t td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.t th{font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+.tw{overflow-x:auto}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--panel);color:var(--panel-ink);padding:10px 16px;border-radius:var(--r);font-weight:600;z-index:50;max-width:calc(100% - 32px)}
+
+/* field card */
+.field{max-width:640px;margin:0 auto;font-size:17px}
+.field .fhead{background:var(--panel);color:var(--panel-ink);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.field .fhead h2{font-size:1.4rem}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.tile .k{font-size:.8rem;font-weight:800;letter-spacing:.04em;color:var(--muted)}
+.tile .v{font-size:1.15rem;font-weight:700;line-height:1.4}
+.tile.hz{border:2px solid var(--signal);background:var(--danger-bg)}
+.tile.hz .k{color:var(--signal)}
+.tile.hz ul{margin:0;padding-left:20px;font-weight:700}
+.big{min-height:56px;font-size:1.05rem}
+.call{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--surface2);flex-wrap:wrap}
+.call .num{font-family:var(--f-mono);font-size:1.25rem;font-weight:700;user-select:all}
+.presence{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.pres{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:8px;background:var(--surface);cursor:pointer;text-align:left;min-height:52px}
+.pres.no{opacity:.4;cursor:default;background:transparent}
+.pres span{font-size:.85rem;font-weight:700;line-height:1.2}
+.ftabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel);display:flex;justify-content:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+.ftabs button{flex:1;max-width:200px;min-height:54px;border:0;border-radius:var(--r);background:transparent;color:var(--panel-ink);font-weight:800;font-size:1rem;cursor:pointer;opacity:.75}
+.ftabs button[aria-current="true"]{background:var(--signal);color:#fff;opacity:1}
+.facrow{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:12px;cursor:pointer;min-height:64px}
+.facrow .meta{min-width:0;flex:1}
+.facrow .meta b{display:block}
+.photos{display:flex;gap:8px;flex-wrap:wrap}
+.photos img{width:140px;height:105px;object-fit:cover;border-radius:4px;border:1px solid var(--line)}
+.photos figure{margin:0;position:relative}
+.photos figure button{position:absolute;top:4px;right:4px}
+
+/* public */
+.pub{max-width:480px;margin:6vh auto 0;display:flex;flex-direction:column;gap:16px}
+.pub .alarm{background:var(--signal);color:#fff;border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:8px}
+.pub .alarm h2{font-size:1.5rem}
+
+/* QR labels */
+.labels{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.qrl{background:#fff;color:#111;border:3px solid #c4122f;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
+.qrl .hd{background:#c4122f;color:#fff;font-weight:800;width:100%;padding:6px;border-radius:4px;font-family:var(--f-display)}
+.qrl .qbox{width:168px;height:168px;display:grid;place-items:center}
+.qrl .qbox img,.qrl .qbox canvas{width:168px!important;height:168px!important}
+.qrl small{font-size:.72rem;color:#333}
+@media print{.top,.subtabs,.noprint,.ftabs{display:none!important}main{padding:0}.labels{grid-template-columns:repeat(3,1fr)}}
+
+.manual{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:800px){.manual{grid-template-columns:minmax(0,1fr)}}
+.toc{display:flex;flex-direction:column;gap:2px;position:sticky;top:76px}
+@media (max-width:800px){.toc{position:static;flex-direction:row;flex-wrap:wrap}}
+.toc button{display:flex;gap:8px;align-items:center;border:1px solid transparent;background:none;border-radius:var(--r);padding:6px 8px;cursor:pointer;text-align:left;font-weight:600;font-size:.88rem}
+.toc button[aria-current="true"]{background:var(--surface);border-color:var(--line)}
+.toc .fg{width:24px;height:24px;font-size:.58rem}
+ol.sop{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+ol.sop>li{display:grid;grid-template-columns:64px 1fr;gap:8px}
+ol.sop>li>span{font-family:var(--f-mono);font-weight:700;color:var(--signal);font-size:.85rem}
+ol.sop ul{margin:4px 0 0;padding-left:18px}
+.checklist{display:flex;flex-direction:column;gap:6px}
+.chk{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px dashed var(--line);padding:6px 0;flex-wrap:wrap}
+.chk .q{flex:1;min-width:200px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:4px 10px;cursor:pointer;font-weight:700;font-size:.8rem}
+.seg button[aria-pressed="true"].o{background:var(--ok);color:#fff}
+.seg button[aria-pressed="true"].x{background:var(--signal);color:#fff}
+.copybox{white-space:pre-wrap;font-family:var(--f-body);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r);padding:12px;font-size:.95rem;user-select:text}
+.result{display:flex;justify-content:space-between;gap:10px;align-items:center;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);cursor:pointer}
+.result[aria-current="true"]{border-color:var(--signal);box-shadow:inset 3px 0 0 var(--signal)}
+.ops{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.ops{grid-template-columns:minmax(0,1fr)}}
+.demo-flag{font-size:.75rem;font-weight:700;color:var(--amber);background:var(--amber-bg);padding:2px 8px;border-radius:3px}
+@media (max-width:600px){
+  .top{position:static}
+  .brand small{display:none}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;width:100%;margin-left:0}
+  .tab{white-space:nowrap}
+}
+/* 교재 사진 썸네일·라이트박스·작동법 모달·끌어놓기 */
+.tbwrap{display:flex;flex-direction:column;gap:6px}
+.tbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.tb{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--line);background:var(--surface2);border-radius:4px;padding:4px;cursor:zoom-in}
+.tb img{width:96px;height:132px;object-fit:cover;object-position:center 40%;border-radius:2px;display:block}
+.tb span{font-family:var(--f-mono);font-size:.72rem;font-weight:700;color:var(--blue)}
+.tb:hover{border-color:var(--blue)}
+.howbox{background:var(--surface2);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.howbox ul{margin:0;padding-left:18px}
+.ov{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.ov.lb{z-index:70;background:#0b0d10}
+.ov-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:var(--panel);color:var(--panel-ink)}
+.ov-body{overflow:auto;padding-inline:16px;padding-block:16px 40px;max-width:900px;width:100%;margin:0 auto}
+.lb-img{flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:12px}
+.lb-img img{max-width:min(100%,1000px);height:auto;display:block}
+.tool:not([data-tool="select"]):not([data-tool="room"]){touch-action:none;cursor:grab}
+.dragghost{position:fixed;z-index:80;pointer-events:none;transform:translate(-50%,-50%) scale(1.5);filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+.planwrap.droppable{outline:2px dashed var(--blue);outline-offset:2px}
+.planwrap.over{outline-color:var(--signal);outline-style:solid}
+.card .subtabs{margin-top:-4px}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<div id="app"></div>
+<script>
+/* =====================================================================
+   FacilityType 마스터 — 「소방시설 활용을 위한 소방활동 교육교재」
+   (부산광역시 소방재난본부, SOP 235 소방시설 활용절차방법)
+   교재 장·절과 1:1 매핑. 건물 데이터와 분리된 정적 콘텐츠.
+   src: 교재 쪽수. '교재 외 보충'은 별도 표기.
+   ===================================================================== */
+const EXT = '교재 외 보충';
+const W_POWER = { lvl: 'caution', t: '제어반 내부 전원스위치를 조작할 때는 충전부 접촉으로 인한 감전에 주의하십시오. 내부 구조를 아는 근무자에게 먼저 조치를 지시하고, 근무자 부재 시에만 대원이 직접 조작합니다.', src: EXT };
+const W_MAKER = { lvl: 'info', t: '조작부 위치·명칭은 제조사마다 차이가 있습니다. 이 건물에 등록된 조작부 사진으로 실제 스위치를 확인하십시오.', src: 'p.5 외' };
+
+const FT = [
+{
+  code: 1, short: '수신', name: '수신반(종합방재실)', group: 'alarm', pages: '4–5',
+  forms: ['종합방재실', 'P형 복합식수신기', 'R형 수신기', '기타'],
+  overview: '종합방재실은 건축·소방·전기·가스 안전관리와 방범·보안·테러 대응을 포함한 통합 재난관리를 하는 곳으로, 「소방기본법」 제4조의 종합상황실과 연계됩니다.',
+  sop: [
+    ['1.1', '다음 사항을 확인하고 지휘관에게 보고', ['감지기가 작동되고 있는 위치(발화 지점)', 'CCTV로 보이는 상황', '각 소방시설의 위치, 위험시설의 위치', '건물 내 수용인원 및 구획별 용도, 진입 및 대피 경로 등']],
+    ['1.2', '제반 방재시설의 작동상태를 확인하면서 필요한 조치', ['제연설비, 소방펌프, 비상용 승강기 등 필요한 시설이 작동하고 있지 않을 경우 수동 작동 및 비상 조치', '시설이 작동되지 않을 경우 건물 관계자(시설관리 기술인력)로 하여금 긴급복구 요구', '자체 방송시설로 수용인원 대피 유도', '가스계 소화설비 방호구역에 사람이 없는 것을 확인 후 작동']],
+    ['①', '화점 발견이 곤란하거나 화재 경보음이 들리지 않는 등 소방시설이 작동하지 않는 경우 건축물에 설치된 수신반(종합방재실) 등 소방시설을 활용하여 화재진압 실시 (※ 수신반은 피난층(1층) 또는 경비실 등 사람이 상주하는 장소에 설치)', []],
+    ['②', '화재 발생 시 소방시설 작동여부 등 증거물 수집을 위해 관계자에게 자료 확보 문서 제출', ['수신반 기록유지장치', 'CCTV 녹화자료(파일 등)', '소방시설 도면(전기, 기계분야)', '건축물 도면', '기타 화재조사에 필요한 자료 — 소방의 화재조사에 관한 법률 제11조']]
+  ],
+  sopPage: 4,
+  procedures: [{
+    id: '1-1', title: '수신반(종합방재실) 비정상 조치방법', page: '5', apply: '고층건축물',
+    situation: ['수신반(종합방재실)이 비정상으로 소방시설이 동작하지 않을 경우'],
+    steps: [
+      { h: '1단계', t: '수신반 근무자에게 정상조치 지시' },
+      { h: '2단계', t: '근무자 부재(不在) 시 조치' }
+    ],
+    emergency: ['수신반 전원 등 조작스위치 정상조치 — 예) 전원 OFF → 전원 ON, 수동 → 자동', '전원스위치를 ON 상태로 전환'],
+    note: '제조사마다 차이가 있음. 보편적으로 수신반 내부에 위치.'
+  }],
+  check: [
+    ['화재발생 및 경보 송출 상태를 수신기에서 확인할 수 있다', '12'],
+    ['계단 연기감지기 동작 표시로 안전한 대피경로를 파악할 수 있다', '12'],
+    ['소화시설의 정상 작동 상태를 확인할 수 있다', '12'],
+    ['방화문·방화셔터 등 기타 소방 관련 시설의 작동 상태를 확인할 수 있다', '12'],
+    ['수신반 조작스위치가 정상 위치(전원 ON, 자동)에 있다', '5']
+  ],
+  citizen: '수신반(종합방재실)은 건물의 소방시설을 한곳에서 감시하고 조작하는 곳입니다. 평소에는 전원이 켜져 있고 스위치가 "자동" 위치에 있는지 확인하세요. 불이 나면 수신반에서 불난 층과 구역을 확인해 소방대에 알려 주세요.',
+  warnings: [W_POWER, W_MAKER]
+},
+{
+  code: 2, short: '자탐', name: '자동화재탐지설비', group: 'alarm', pages: '6–12',
+  forms: ['P형', 'R형', '기타'],
+  overview: '화재발생과 장소를 화재표시등·지구표시등으로 표시하고, 동시에 주경종과 지구경종을 울려 화재 발생 사실을 알려주는 설비. 경계구역은 ① 층별 ② 면적별(600㎡ 이내)로 구분.',
+  sop: [
+    ['2.1', '발화지점의 위치 확인은 화재표시등 및 지구표시등의 점등위치로 확인한다.', []],
+    ['2.2', '음향장치(지구경종, 비상방송설비 사이렌 등)가 정상적으로 송출되는지 확인하고, 송출되지 않을 경우 음향장치 조작스위치를 1회 눌러서 정상상태로 한다.', []],
+    ['2.3', '수신기의 전원이 공급되지 않았을 경우에는 수신기의 문짝을 개방하여 전원스위치를 OFF에서 ON 상태로 전환한다.', []],
+    ['2.4', '비상방송설비 및 소화설비, 제연설비 등의 감시제어반과 겸용하는 경우에는 연동되는 설비의 작동상태를 확인한다.', ['비상방송설비: 비상방송의 송출여부 확인', '소화설비: 각 설비의 펌프기동상태 확인', '제연설비: 제연설비 팬(급기, 배기), 댐퍼의 동작상태 확인']]
+  ],
+  sopPage: 6,
+  procedures: [{
+    id: '2-1', title: '자동화재탐지설비 수신기 확인 및 조치방법', page: '7', apply: '일반 건축물',
+    situation: ['수신기를 통한 발화지점 확인 및 음향장치 미송출 시 조치방법'],
+    steps: [
+      { h: '1단계', t: '수신기를 통해 발화지점 확인', d: ['수신기의 화재표시등 및 지구표시등 점등 확인', '예) 지구표시등이 2F에서 점등되었기에 발화점은 2F'] },
+      { h: '2단계', t: '음향장치 미송출 시 조치', d: ['경종스위치를 1회 누르면 송출됨'] }
+    ]
+  }, {
+    id: '2-2', title: '수신기 기록저장장치 활용방법', page: '8–9', apply: '일반 건축물',
+    overview: '수신기 기록장치에 저장되는 내용: ① 전원의 ON/OFF 상태 ② 소방설비의 작동신호, 작동확인신호 ③ 배선의 단선유무 ④ 스위치의 정상상태 여부',
+    situation: ['수신기 기록저장장치 확인 및 데이터 저장 — 수신기를 통한 소방시설의 관리상태 및 화재대응 상황 확인'],
+    steps: [
+      { h: '1단계', t: '수신기의 기록저장장치 위치 확인', d: ['P형 수신기의 경우 "화재기록장치"(USB단자, UP·DOWN·ENT·ESC 버튼)'] },
+      { h: '2단계', t: '보조매체(USB, SD메모리 등)를 통한 기록 저장', d: ['SD메모리를 소켓에 꽂고 ENT 버튼을 누른다', 'UP·DOWN 버튼으로 "3. 기록저장"을 맞추고 ENT 버튼을 누른다', '"복사 준비중입니다" 표시 — 정상 복사 중', '"복사 중입니다" 표시 — 복사되는 기록 숫자 표시', '"복사 완료되었습니다. 메모리를 제거해도 됩니다" 표시 후 SD메모리 제거'] }
+    ],
+    note: '제조사마다 약간의 차이가 있음.'
+  }],
+  tech: [
+    ['수신기 설치위치', '10', '일반적으로 피난층(1층), 수위실 등 상시 사람이 근무하는 장소로 관계인이 쉽게 접근할 수 있고 관리가 용이한 장소. 감시제어반은 피난층 또는 지하 1층(특별피난계단 출입구로부터 보행거리 5m 이내에 전용실 출입구가 있는 경우, 아파트 관리동(경비실)에 설치하는 경우는 지상 2층 또는 지하 1층 외의 지하층 가능).'],
+    ['P형 수신기', '10', '화재 신호를 접점신호인 공통신호로 수신(실선배선). 경계구역수가 증가할수록 전선수가 증가 — 소규모 건축물 적용.'],
+    ['R형 수신기', '11', '감지기 또는 발신기에서 보내는 접점신호를 중계기를 통해 고유신호로 변환하여 수신기에 전달하거나, 주소형감지기로 직접 고유신호를 전달하는 방식 — 대형건물 적용.']
+  ],
+  check: [
+    ['화재표시등·지구표시등이 꺼져 있고 이상 표시가 없다', '7'],
+    ['음향장치(주경종·지구경종) 스위치가 정상 위치에 있다', '6'],
+    ['수신기 전원이 공급되고 있다', '6'],
+    ['기록저장장치(화재기록장치) 위치와 USB·SD 단자를 알고 있다', '8']
+  ],
+  citizen: '자동화재탐지설비는 감지기가 불을 감지하면 수신기에 불난 곳을 표시하고 경종을 울리는 설비입니다. 수신기의 "화재" 표시등과 층·구역 표시등을 보면 불난 곳을 알 수 있습니다. 경종이 울리지 않으면 경종 스위치를 한 번 눌러 정상으로 되돌립니다.',
+  warnings: [W_POWER, W_MAKER]
+},
+{
+  code: 3, short: '방송', name: '비상방송설비', group: 'alarm', pages: '13–15',
+  forms: ['일제경보방식', '우선경보방식', '기타'],
+  overview: '화재발생 상황을 자동·수동으로 확성기를 통해 음성(방송)으로 알려주는 설비. 확성기(Speaker), 음량조정기(Attenuator), 증폭기(Amplifier), 조작부(Operation panel), 기동장치로 구성되며 화재발생 시 수신기의 화재연동으로 10초 이내 작동.',
+  sop: [
+    ['3.1', '화재발생 시 자동전환에 의해 비상방송으로 교체되는 것이 원칙이지만 수동인 경우도 있으므로 업무방송에서 비상방송으로 스위치를 조작', []],
+    ['3.2', '경보음(사이렌)은 비상스위치를 조작하는 것에 의해 자동적으로 명동하고 조작부 옆의 마이크 스위치를 누르면 경보음은 정지되고 육성으로 방송할 수 있다.', []],
+    ['3.3', '필요 층을 선택하여 지시, 명령을 발할 때는 층별 작동 스위치를 눌러 방송한다.', []],
+    ['3.4', '각 층에 있는 대원들에게 동일한 내용의 지시, 명령을 발할 경우는 일제 스위치로 바꿔 방송한다.', []],
+    ['3.5', '화재층 또는 화재가 연소 확대하고 있는 층은 사용 불가능하므로 주의한다. 단, 다른 층의 스피커에는 영향을 받지 않도록 설계되어 있다.', []],
+    ['3.6', '스피커의 음량은 90데시벨 이상이며, 상당한 소음 중에서도 유효히 방송할 수 있다.', []],
+    ['3.7', '비상방송설비 조작부 전원이 차단된 경우, 첨부된 자료를 참조하여 비상 조치한다.', []]
+  ],
+  sopPage: 13,
+  procedures: [{
+    id: '3-1', title: '비상방송설비 조작부 전원차단 등 조치방법', page: '14–15', apply: '건물내부(종합상황실, 방재실)',
+    overview: '조작부 외형: 화재 발생 표시부, 방송 작동층 표시부, 방송층 선택스위치, 전원 스위치.',
+    situation: ['비상방송설비 전원차단', '비상방송설비 연동스위치 차단'],
+    steps: [
+      { h: '1단계', t: '비상방송설비 전원차단 정상 조치', d: ['전원스위치 OFF → ON (상용전원 차단 시 교류전원·예비전원 표시등 확인)'] },
+      { h: '2단계', t: '비상방송설비 연동스위치 정상 조치', d: ['정지 → 연동'] }
+    ],
+    note: '제조사마다 차이가 있음. 보편적으로 수신반 내부에 위치.'
+  }],
+  check: [
+    ['비상방송설비 전원이 공급되고 있다', '14'],
+    ['연동스위치가 정상 위치(연동)에 있다', '14'],
+    ['화재 연동신호가 들어오면 스피커가 정상 출력된다 (일제경보: 전층 / 우선경보: 화재층 및 직상층)', '14']
+  ],
+  citizen: '비상방송설비는 불이 나면 자동으로 사이렌과 안내방송을 내보내는 설비입니다. 평소 전원이 켜져 있고 연동스위치가 "연동"에 있는지 확인하세요. 불이 나면 마이크로 건물 안 사람들에게 대피를 안내할 수 있습니다.',
+  warnings: [{ lvl: 'caution', t: '화재층 또는 연소 확대 중인 층의 스피커는 사용이 불가능할 수 있습니다. 해당 층 대원에게는 무전 등 다른 수단을 병행하십시오.', src: 'p.13 SOP 3.5' }, W_POWER, W_MAKER]
+},
+{
+  code: 4, short: '소화전', name: '옥내·외소화전설비', group: 'ext', pages: '16–24',
+  forms: ['옥내 · 자동기동방식', '옥내 · 수동기동(ON/OFF)방식', '옥외소화전', '기타'],
+  overview: '감시제어반: 펌프의 자동 및 수동기동 제어기능. 동력제어반: 펌프 전원 공급, 펌프의 수동기동 기능. 옥내소화전 감시제어반은 복합식수신기의 일부분으로 구성되는 경우가 많음.',
+  sop: [
+    ['4.1', '소화전함', ['계단, 복도 등에 적색등(표시등)이 있는 장소에는 일반적으로 소화전이 설치되어 있으므로 필요시 적극 활용', '소화전 설치개소의 적색등은 소화전의 상부에 설치', '소화전함의 표면에는 "소화전"이란 표시', '연결송수관 겸용 소화전함의 표면에는 소화전 이외에 "방수구"의 문자가 표시', '소화전함의 크기는 일반적으로 0.5㎡ 이상. 연결송수관 설비와 겸용인 경우도 동일']],
+    ['4.2', '설치위치 — 특별한 설치위치 규정은 없으나 보통 활용에 편리한 계단에 가까운 복도에 설치', []],
+    ['4.3', '수원', ['수조규모에 따라 다르지만 일반적으로 20분 사용', '연결송수관 겸용인 경우는 연결송수관 송수구에 의해 가압송수 시도 사용이 가능']],
+    ['4.4', '기타', ['소방대 방수준비가 완료될 때까지 또는 파이프샤프트, 덕트 및 소규모 화재의 경우는 적극적으로 옥내소화전을 활용', '사용능력의 한계는 동일 층에 있어서 2개 이상 설치된 경우는 사용가능 개수 2개까지, 2개 이하인 경우는 전부 사용']],
+    ['4.5', '건물 층수가 많으면 많을수록 아래층에 고압송수가 예상되므로 위해 방지 상 관창압력 조정은 소화전함 내의 앵글밸브를 사용', []],
+    ['4.6~4.10', '감시제어반 전원차단, 펌프 미작동, 자동·수동기동방식 사용, 펌프실 수동조작은 첨부 자료(아래 조치 카드) 참조', []]
+  ],
+  sopPage: 16,
+  procedures: [{
+    id: '4-1', title: '옥내소화전설비 감시제어반 전원차단 등 조치방법', page: '17–18', apply: '건물내부(종합상황실, 방재실)',
+    situation: ['옥내소화전 감시제어반 전원차단', '옥내소화전 감시제어반 펌프 연동스위치 정지', '옥내소화전 동력제어반 펌프 운전스위치 수동(정지)'],
+    steps: [
+      { h: '1단계', t: '옥내소화전 감시제어반 전원차단 정상 조치', d: ['전원스위치 OFF → ON'] },
+      { h: '2단계', t: '옥내소화전 감시제어반 연동스위치 정상 조치', d: ['수동(정지) → 연동'] },
+      { h: '3단계', t: '옥내소화전 동력제어반 운전스위치 정상 조치', d: ['수동(정지) → 연동 (교재 p.18 사진상 동력제어반 주펌프 선택스위치는 "자동" 위치로 전환)'] }
+    ],
+    note: '제조사마다 차이가 있음. 보편적으로 수신반 내부에 위치.'
+  }, {
+    id: '4-2', title: '옥내소화전설비 펌프실(기계실) 수동조작방법', page: '19–20', apply: '건물내부',
+    overview: '펌프 정상작동 하는 경우: 소방차와 송수구를 연결하여 화재층에 배관을 통하여 소화전에 지속적으로 물을 공급.',
+    situation: ['옥내소화전 자동기동 불가, 수동으로 동작시켜야 하는 상황'],
+    steps: [
+      { h: '1단계', t: '옥내소화전 감시제어반(방재실) 수동기동 조치', d: ['감시제어반 연동스위치: 연동(정지) → 수동', '주펌프 기동스위치 조작', '펌프 기동 시 완료, 펌프 미기동 시 2단계 수행'] },
+      { h: '2단계', t: '옥내소화전 동력제어반(기계실, 펌프실) 수동기동 조치', d: ['운전스위치: 자동 → 수동', '기동스위치 누름'] }
+    ]
+  }, {
+    id: '4-3', title: '옥내소화전설비 펌프 기동방식 ① 자동기동방식', page: '21', apply: '건물내부',
+    overview: '소화전을 사용할 때 배관 내 수압이 낮아지면서 소화펌프가 자동으로 작동하여 소화수를 공급하는 방식.',
+    steps: [
+      { h: '사용', t: '옥내소화전함의 위치 확인 → 소화전함에서 수관 전개 → 앵글밸브 개방' },
+      { h: '확인', t: '소화전함 상부 가압송수장치 기동표시등 점등 여부 확인', d: ['● 점등 시: 주펌프 작동', '○ 미점등 시: 주펌프 미작동', '※ 주펌프 작동 시에도 기동표시등이 점등 안 될 수 있음 (원인: 기동표시등 전원라인 불량, 표시등 램프 불량)'] }
+    ]
+  }, {
+    id: '4-4', title: '옥내소화전설비 펌프 기동방식 ② 수동기동방식', page: '22', apply: '건물내부',
+    overview: '소화전 사용 시 소화전함(내·외부)에 설치된 펌프 기동(적색)/정지(녹색) 스위치에서 기동(적색) 스위치를 조작하여 펌프를 작동. 설치장소: 학교, 공장, 창고 등 배관의 동파우려가 되는 장소.',
+    steps: [
+      { h: '사용', t: '소화전함 위치 확인 → 수관 전개 → 앵글밸브 개방 → 펌프 수동 기동(기동스위치(ON) 누름)', d: ['기동스위치는 소화전함 내부 또는 외부에 설치'] },
+      { h: '확인', t: '소화전함 상부 기동표시등 점등 여부 확인 (점등: 주펌프 작동 / 미점등: 미작동)', d: ['수동기동방식은 일반적으로 배관 내부에 물이 없는 경우로, 펌프가 작동 후 관창까지 시간이 걸림'] }
+    ]
+  }, {
+    id: '4-5', title: '옥외소화전 소화펌프 2차측 폐쇄 등 조치방법', page: '23–24', apply: '건물내부',
+    overview: '옥외소화전설비: 지상에 위치한 대형 건축물의 1층과 2층 화재 시 건축물 내부로의 진입이 어려운 경우 화재를 외부에서 진압하고자 설치한 설비.',
+    situation: ['옥외소화전 소화펌프 2차측 밸브 폐쇄로 방수불가 상황'],
+    steps: [
+      { h: '1단계', t: '옥외소화전 소화펌프실 위치 확인 및 이동', d: ['소화펌프 토출구 개폐밸브 위치 확인'] },
+      { h: '2단계', t: '옥외소화전 소화펌프 토출구 개폐밸브 폐쇄 확인 및 개방', d: ['폐쇄 → 개방', '스템 상승 = 밸브 개방 / 스템 하강 = 밸브 폐쇄'] }
+    ]
+  }],
+  check: [
+    ['소화전함 상부 적색 표시등이 켜져 있다', '16'],
+    ['소화전함 표면에 "소화전"(겸용은 "방수구") 표시가 있다', '16'],
+    ['감시제어반 연동스위치가 "연동", 동력제어반 운전스위치가 "자동" 위치에 있다', '18'],
+    ['기동표시등 전원·램프가 정상이다', '21'],
+    ['소화펌프 토출구 개폐밸브가 열려 있다(스템 상승)', '24']
+  ],
+  citizen: '옥내소화전은 불이 났을 때 건물 사람이 직접 쓰는 소화설비입니다. 소화전함을 열고 호스를 펼친 뒤 밸브를 돌려 열면 펌프가 작동해 물이 나옵니다(수동기동방식은 기동 버튼도 눌러야 합니다). 평소 소화전함 위 빨간 표시등이 켜져 있는지, 제어반 스위치가 "자동·연동"인지 확인하세요.',
+  warnings: [{ lvl: 'caution', t: '고층 건물은 아래층에 고압 송수가 예상됩니다. 관창압력은 소화전함 내 앵글밸브로 조정하십시오.', src: 'p.16 SOP 4.5' }, W_POWER, W_MAKER]
+},
+{
+  code: 5, short: 'SP', name: '스프링클러설비', group: 'ext', pages: '25–34',
+  forms: ['습식', '준비작동식', '기타'],
+  overview: '감시제어반: 화재감시, 경보, 펌프의 자동 및 수동기동(방재실). 동력제어반: 펌프 전원 공급, 펌프의 수동기동(기계실·펌프실). 습식은 알람밸브 1·2차측 가압수 유지, 준비작동식은 프리액션밸브 1차측 가압수·2차측 대기압 유지.',
+  sop: [
+    ['5.1', '출동대는 소방차를 스프링클러설비의 연결송수구 주변에 위치시키고, 호스(65㎜) 연결', []],
+    ['5.2', '스프링클러설비에 의한 완전진화 시 대원에 의한 잔화정리', []],
+    ['5.3', '스프링클러가 설치된 건물의 효과적인 화재진압을 위해서 적절한 배연이 필요', []],
+    ['5.4', '무전기를 소지한 대원을 스프링클러 급수 차단 밸브에 배치', []],
+    ['5.5', '스프링클러 설비에 의한 급수를 차단하기 전에 화재진압 및 확대방지 작전에 필요한 적정 진압대원을 배치', []],
+    ['5.6', '소방호스를 사용할 수 없는 경우 추가 소방대 도착 전까지 스프링클러 계속 사용', []],
+    ['5.7', '화재발생 장소에 설치된 고가설비(제품) 및 장비, 가구 등에 대한 수손피해를 최소화하기 위해 신속한 배수작업 실시', []],
+    ['5.8~5.10', '제어반 전원차단, 습식·준비작동식 펌프 미작동, 준비작동식 긴급개방(수신기·밸브)은 첨부 자료(아래 조치 카드) 참조', []]
+  ],
+  sopPage: 25,
+  procedures: [{
+    id: '5-1', title: '스프링클러설비 제어반 전원차단 등 조치방법', page: '26–27', apply: '건물내부(종합상황실, 방재실)',
+    situation: ['스프링클러설비 감시제어반 전원차단', '스프링클러설비 감시제어반 펌프 연동스위치 정지', '스프링클러설비 동력제어반 펌프 운전스위치 수동(정지)'],
+    steps: [
+      { h: '1단계', t: '스프링클러 감시제어반 전원차단 정상 조치', d: ['전원스위치 OFF → ON'] },
+      { h: '2단계', t: '스프링클러설비 감시제어반 연동스위치 정상 조치', d: ['수동 → 연동'] },
+      { h: '3단계', t: '스프링클러설비 동력제어반 운전스위치 정상 조치', d: ['수동(정지) → 자동'] }
+    ],
+    note: '제조사마다 차이가 있음. 보편적으로 수신반 내부에 위치.'
+  }, {
+    id: '5-2', title: '스프링클러설비 펌프실(기계실) 수동조작 방법', page: '28–29', apply: '건물내부', tag: '습식',
+    overview: '습식: 습식유수검지장치(알람밸브)를 중심으로 1·2차측 배관이 가압된 소화수로 유지, 화재 시 열에 의한 헤드 개방에 의한 펌프작동으로 소화수 방사. 펌프 정상 작동 시 소방차와 송수구를 연결하여 화재층에 스프링클러헤드를 통하여 지속적으로 물을 공급.',
+    situation: ['스프링클러설비 자동기동 불가, 수동으로 동작시켜야 하는 상황'],
+    steps: [
+      { h: '1단계', t: '스프링클러설비 감시제어반(방재실) 수동기동 조치', d: ['연동스위치: 연동(정지) → 수동', '주펌프 기동', '펌프 기동 시 완료, 펌프 미기동 시 2단계 수행'] },
+      { h: '2단계', t: '스프링클러설비 동력제어반(기계실, 펌프실) 수동기동 조치', d: ['운전스위치: 자동 → 수동', '기동스위치 누름'] }
+    ]
+  }, {
+    id: '5-3', title: '준비작동식 SP, 감시제어반(방재실)에서 수동개방 조치방법', page: '30–31', apply: '건물 주차장', tag: '준비작동식',
+    overview: '준비작동식(프리액션밸브)을 중심으로 1차측 가압수, 2차측 대기압 상태로 유지. 화재 시 감지기의 작동으로 준비작동식밸브가 개방되어 2차측 배관에 가압수가 송수된 후 헤드가 열에 의해 개방되면 소화수가 방사.',
+    situation: ['준비작동식 스프링클러설비 자동기동 불가, 수동으로 감시제어반에서 동작시켜야 하는 상황 (R형, P형 구분)'],
+    steps: [
+      { h: 'R형 1단계', t: '선착소방대원 방재실(감시제어반) 이동' },
+      { h: 'R형 2단계', t: '감시제어반 컴퓨터 화면(모니터) 조작 — 마우스를 이용 조작스위치(솔레노이드) 수동으로 전환', d: ['해당 층 SOL 제어: 수동 전환 → ON'] },
+      { h: 'P형 1단계', t: '선착소방대원 방재실(감시제어반) 이동' },
+      { h: 'P형 2단계', t: '감시제어반 조작', d: ['감시제어반 조작스위치 전환: 자동 → 수동', '프리액션밸브 수동기동스위치: 정지 → 기동'] }
+    ],
+    note: '제조사마다 약간의 차이가 있음.'
+  }, {
+    id: '5-4', title: '준비작동식 SP, 프리액션밸브(유수검지장치실)에서 수동개방 조치방법', page: '32–33', apply: '건물 주차장', tag: '준비작동식',
+    overview: '준비작동식밸브(프리액션밸브) 압력상태: 1차측(펌프) 가압수, 2차측(헤드) 대기압. 폐쇄형 스프링클러헤드 사용, 화재감지기 설치.',
+    situation: ['준비작동식 스프링클러설비 자동기동 불가, 수동으로 밸브를 직접 개방시켜야 하는 상황'],
+    steps: [
+      { h: '1단계', t: '선착소방대원 화재층 준비작동식밸브(유수검지장치실)로 이동' },
+      { h: '2단계', t: '준비작동식밸브의 수동밸브(긴급수동개방밸브) 개방' },
+      { h: '방수확인', t: '준비작동식밸브가 개방된 상태에서 헤드까지의 물의 이동확인 조치', d: ['해당층 유수검지장치실 준비작동식밸브 1차, 2차 개폐밸브 개방상태 확인', '개폐밸브 폐쇄상태인 경우 개방조치'] }
+    ],
+    note: '제조사마다 약간의 차이가 있으나, 동일한 개념임.'
+  }, {
+    id: '5-5', title: '기술자료: 준비작동식밸브(프리액션밸브) 동작원리', page: '34', tag: '준비작동식',
+    overview: '1차측에 가압수, 2차측에 공기를 가득 채운 상태에서 감지부(기동용 화재감지기, 화재감지용 헤드 등) 작동에 의하여 시트가 열리어 가압수가 2차측으로 유출하는 장치. 방재실 수동조작스위치에 의한 긴급개방 시 압력감소 → 방수.',
+    steps: [
+      { h: '방법 1', t: '교차회로 감지기 동작', d: ['연동전환 후 방호구역 내 교차회로 감지기 동작 (단, 열연복합형의 경우는 1개 회로 연속동작)'] },
+      { h: '방법 2', t: '수동조작함 작동', d: ['연동전환 후 수동조작함의 기동스위치를 누름'] },
+      { h: '방법 3', t: '준비작동식밸브의 수동개방밸브', d: ['준비작동식밸브의 수동개방밸브(긴급해정밸브)를 수동 개방'] },
+      { h: '방법 4', t: '동작시험으로 교차회로 동작', d: ['제어반 동작시험스위치와 회로선택스위치로 동작시험 수행', 'A회로 선택 후 동작시험스위치를 누름 → B회로 전환 후 연동상태 → 지연시간 경과 후 → 솔레노이드밸브 격발'] },
+      { h: '방법 5 ★', t: '제어반 수동조작 스위치 동작 [선착소방대원 활용]', d: ['솔레노이드밸브 선택스위치를 수동 위치로 전환 후 정지에서 기동위치로 전환하여 동작시킴 (R형 수신기는 마우스 제어)'] }
+    ]
+  }],
+  check: [
+    ['감시제어반 연동스위치가 "연동"에 있다', '27'],
+    ['동력제어반 운전스위치가 "자동"에 있다', '27'],
+    ['유수검지장치 1차·2차 개폐밸브가 열려 있다', '33'],
+    ['층별 송수구 표지(구역·송수압력)가 붙어 있다', '53'],
+    ['준비작동식밸브실(유수검지장치실) 위치를 알고 있다', '32']
+  ],
+  citizen: '스프링클러는 천장의 헤드가 열에 반응해 자동으로 물을 뿌리는 설비입니다. 평소 제어반 스위치가 "연동·자동"에 있고, 밸브실의 밸브가 열려 있는지 확인하세요. 주차장 등에 쓰이는 준비작동식은 감지기가 먼저 작동해야 밸브가 열립니다.',
+  warnings: [{ lvl: 'caution', t: '무전기를 소지한 대원을 스프링클러 급수 차단 밸브에 배치하고, 급수를 차단하기 전에 진압·확대방지에 필요한 대원을 먼저 배치하십시오.', src: 'p.25 SOP 5.4–5.5' }, { lvl: 'info', t: '고가설비·장비 수손피해를 줄이도록 신속히 배수작업을 실시하십시오.', src: 'p.25 SOP 5.7' }, W_POWER, W_MAKER]
+},
+{
+  code: 6, short: '가스', name: '이산화탄소·할로겐화합물 등 소화설비', group: 'ext', pages: '35–39',
+  forms: ['이산화탄소', '할로겐화합물', '기타 가스계'],
+  overview: '화재발생 장소에 가스형태로 방사되며 질식소화 또는 연쇄반응 억제를 통하여 화재진압. 제어반 설치장소: 방재실, 소화약제 방호구역 내, 소화가스 저장실 내 중 1곳. 평상시 제어반 스위치는 자동(연동).',
+  sop: [
+    ['6.1', '가스계소화설비 제어반의 동작상태 확인은 첨부된 자료를 참조한다.', []],
+    ['6.2', '현장도착 시 이미 가스가 방출되어 있는 경우', ['다음 대상물은 자동방출방식이며 인명위험이 높음 — 상시 사람이 없는 대상물의 방호구역 / 불특정 다수인이 출입하지 않는 방호구역 또는 야간에 무인이 되는 대상물 내 방호구역', '이산화탄소 소화설비의 가스비중은 공기비중의 1.5배이며 방출 후 기화가스는 침강하므로 당해 설비를 설치한 층보다 아래층에 방호구역이 있는 경우는 그 방사구역으로부터 누출된 가스 등을 예측하여 행동']],
+    ['6.3', '소방대 지시에 의해 가스를 방출시킨 경우', ['이산화탄소 및 할로겐화합물 소화설비의 활용에 대하여는 연소실체를 파악하고, 사용 유무를 판단', '전역 방출 방식에 있어서는 방출 전에 대피경보를 발한다', '수동기동장치의 가스방출 버튼은 문을 개방하는 것에 의해 사이렌 경보가 발한 후가 아니면 조작할 수 없는 구조가 되므로 경보울림에 유의', '수동기동장치 오작동의 경우에는 용기밸브 또는 방출밸브가 개방 할 때까지의 시간 내에(방출지연장치가 20초 이상으로 고정되어 있다.) 이산화탄소가스의 방출정지 버튼을 눌러 긴급 차단', '선착소방대 가스계소화설비 방출조치방법은 첨부된 자료를 참조']],
+    ['6.4', '안전관리', ['관계자로부터 정보 및 감시제어반 또는 자동화재탐지설비의 겸용 수신반 등에 가스방출 표시가 나타나는 경우 또는 방호구역의 출입구 등의 보기 쉬운 장소에 방출표시등이 점등된 경우, 진입대원을 한정하고 진입하는 대원에게는 공기호흡기를 완전히 장착', '이산화탄소 소화설비가 방사한 때 내부압력 상승에 의해서 출입구 방화문, 방화셔터, 개구부 틈에서 누설가스가 방호구획 밖으로 분출할 염려가 있으므로 주의', '선택밸브의 조작을 잘못해 화재장소 이외의 방호구획에 가스가 충만할 염려가 있으므로 산소가스 측정기로 안전을 확인한 구역 이외는 위험범위라 간주하고 행동', '방호구역 내에 요구조자 및 공기호흡기를 장착하지 않은 소방대원이 있는가를 확인하고 농연 등으로 소방대의 진입 곤란한 화재에 있어서는 관계자로 하여금 배기 설비를 조작시켜 가스를 방출', '이산화탄소 소화설비에 있어서는 방사 시 용기 등의 금속분이 얼고 손을 접촉하면 동상의 우려가 있으므로 주의']]
+  ],
+  sopPage: 35,
+  procedures: [{
+    id: '6-1', title: '가스계소화설비 미동작 시 수동(제어반) 조치방법', page: '36–37', apply: '건물내부(종합상황실, 방재실)',
+    situation: ['가스계소화설비 자동기동 불가, 방재실에서 수동기동스위치를 직접 개방시켜야 하는 상황'],
+    steps: [
+      { h: '1단계', t: '선착소방대원 방재실로 이동. 화재위치(방호구역) 확인' },
+      { h: '2단계', t: '제어반에서 수동기동스위치 조작 개방', d: ['① 솔레노이드밸브: 연동 → 수동', '② 화재위치(방호구역) 수동기동스위치 누름'] }
+    ],
+    note: '제조사마다 약간의 차이가 있으나, 동일한 개념임.'
+  }, {
+    id: '6-2', title: '가스계소화설비 미동작 시 수동(현장, 방호구역) 조치방법', page: '38–39', apply: '건물내부(종합상황실, 방재실)',
+    overview: '가스계소화설비 수동조작함: 화재발생 장소의 방호구역 출입구 인근에 설치.',
+    situation: ['가스계소화설비 자동기동 불가, 현장(방호구역)에서 수동조작함을 직접 개방시켜야 하는 상황'],
+    steps: [
+      { h: '1단계', t: '선착소방대원 화재위치(방호구역)' },
+      { h: '2단계', t: '방호구역 출입문 인근의 수동조작함에서 수동개방', d: ['수동조작함 개방 후 기동스위치 누름 (함 표기: "화재 시 1. 뚜껑을 연 다음 2. 보턴을 강하게 누르시오")'] }
+    ],
+    note: '제조사마다 약간의 차이가 있으나, 동일한 개념임.'
+  }],
+  check: [
+    ['제어반 스위치가 자동(연동) 위치에 있다', '36'],
+    ['방호구역 출입구 인근 수동조작함 위치를 알고 있다', '38'],
+    ['방호구역 출입구 방출표시등이 정상이다', '35'],
+    ['제어반 설치장소(방재실·방호구역 내·저장실 중 1곳)를 알고 있다', '36']
+  ],
+  citizen: '이산화탄소 등 가스계 소화설비는 전기실 같은 곳에 가스를 뿜어 불을 끄는 설비입니다. 가스가 나오면 사람이 숨을 쉴 수 없으므로, 작동시키기 전에 반드시 방호구역 안에 사람이 없는지 확인해야 합니다. 평소 제어반 스위치가 "자동(연동)"에 있는지 확인하세요.',
+  warnings: [
+    { lvl: 'danger', t: '방호구역에 사람이 없는 것을 확인한 후에만 작동시키십시오.', src: 'p.4 SOP 1.2.4' },
+    { lvl: 'danger', t: '전역방출 방식은 방출 전에 대피경보를 발하십시오. 수동기동장치 오작동 시 방출지연 시간(20초 이상) 안에 방출정지 버튼으로 긴급 차단합니다.', src: 'p.35 SOP 6.3' },
+    { lvl: 'danger', t: '방출표시등 점등·가스방출 표시가 있으면 진입대원을 한정하고 공기호흡기를 완전히 착용하십시오. 이산화탄소는 공기보다 무거워 아래층으로 침강합니다.', src: 'p.35 SOP 6.2·6.4' },
+    { lvl: 'caution', t: '방사 시 용기 등 금속부가 얼어 접촉하면 동상 우려가 있습니다.', src: 'p.35 SOP 6.4 ⑤' }
+  ]
+},
+{
+  code: 7, short: '송수', name: '연결송수관설비', group: 'act', pages: '40–53',
+  forms: ['건식 단독', '습식 · 옥내소화전 겸용', '이중배관(초고층)', '기타'],
+  overview: '화재 시 소방 펌프차에 의해 건물 내 배관으로 송수하여 소방대원이 사용하는 설비. 건식은 10층 이하 저층건물(지하층 포함 층수 7층 이상), 습식은 높이 31m 이상·11층 이상 고층에 적용. 70m 이상 고층건축물은 고층부·저층부로 2원화되고 가압송수장치가 설치됨.',
+  sop: [
+    ['7.1', '송수요령 (단독 펌프차대의 1구 송수, 소방용수가 먼 경우에 중계대형)', ['송수는 연합송수가 되므로 송수구 부분의 송수압력이 같아지도록', '송수계통이 2 이상일 때는 송수하는 펌프차대는 약 10% 정도 높은 압력으로 송수 펌프를 운용, 뒤에서 송수하는 펌프차대는 압력계 등 각종 계기의 지침상황에 유의하고 송수압력이 적정한지를 확인', '송수초기에는 송수 쪽의 게이트밸브가 폐쇄되어 있으며 송수할 수 없으므로 관계자에게 지시하여 밸브를 신속하게 개방(게이트밸브의 위치는 방재센터 또는 소화전함 내에 표시)', '옥상수조 쪽 체크밸브의 기능이 저하되어 송수가 옥상수조로 유입, 유효압력을 얻을 수 없을 때는 옥상수조 쪽의 게이트밸브를 잠가 활용', '건식배관의 경우 드레인콕크나 방수구밸브가 개방되어 있으면 누수된 물의 손실이 크므로 콕크나 밸브를 폐쇄']],
+    ['7.2', '방수요령', ['방수압력은 방수구의 밸브 개폐로 조정', '상하층에서 동시에 방수할 때에는 하층의 방수압력을 작게 하지 않으면 상층에서 유효압력을 얻을 수 없는 경우가 있음', '옥내소화전과 주배관이 공용으로 되어 있는 것은 기동스위치를 조작함으로써 1구 정도는 더 방수 가능', '연결송수관의 방수구함 표면에는 방수구의 표시가 있음', '방수구는 옥내소화전함 내에 공용으로 설치된 것과 단독으로 격납함 내에 설치된 것이 있음', '옥내소화전과 주 배관을 겸용하고 있는 것은 사용 시 고압의 방수압력이 걸리므로 자위소방대가 옥내소화전을 사용 중인 경우에는 그 사용을 중지시키는 등의 조치']],
+    ['7.3~7.4', '단독·옥내소화전 겸용 활용 절차, 가압송수장치 미작동 시 조치는 첨부 자료(아래 조치 카드) 참조', []]
+  ],
+  sopPage: 40,
+  procedures: [{
+    id: '7-1', title: '(건식) 단독 연결송수관설비 활용한 진압 절차', page: '41–42', apply: '10층 이하 건물 (단독 연결송수관설비 - 건식)', tag: '건식 단독',
+    situation: ['연결송수관설비 송수구를 통한 송수가 필요한 경우'],
+    steps: [
+      { h: '1단계', t: '연결송수관설비 사용 준비', d: ['화재층 및 해당 송수구 확인 — 고층부, 저층부 구분 연결(송수압력 확인)', '소방펌프차 직렬 연결(송수압력 증가) — 화재층 적정 방사량'] },
+      { h: '2단계', t: '연결송수관설비를 통한 화재진압', d: ['화재직하층 진입 — 도보, 비상용승강기 신속한 이동', '방수구 연결, 방수 — 이경커플링 사용(65㎜ → 40㎜)', '화재진압 — 화재층으로 이동 진압'] }
+    ]
+  }, {
+    id: '7-2', title: '(습식) 옥내소화전 겸용 연결송수관설비 활용한 진압절차', page: '43–44', apply: '고층건축물 (옥내소화전 겸용 연결송수관 설비)', tag: '습식',
+    overview: '옥상수조에 의해 입상관에 물 충만. 대부분 옥내소화전 주배관(100㎜ 이상)과 겸용으로 10층 이하 저층건물도 통상 습식 사용. 70m 이상 고층건축물은 고층부·저층부로 2원화(고층부 송수구, 저층부 송수구를 화재층에 정확히 구분 송수)되고 가압송수장치 설치(화재층이 가압송수장치 설치층 이상인 경우 펌프 작동). 가압송수장치 기동스위치는 방재실, 송수구 부근에 설치. 송수구 표지 예시(교재 사진 속 특정 건물): 저층부(B1F~10F) 0.9MPa, 고층부(11F~24F) 1.2MPa — 현장 표지를 반드시 확인.',
+    situation: ['옥내소화전설비 겸용 연결송수관설비 송수구를 통한 송수가 필요한 경우'],
+    steps: [
+      { h: '1단계', t: '연결송수관설비 사용 준비', d: ['화재층 및 해당 송수구 확인 — 고층부, 저층부 구분 연결(화재층 확인)', '소방펌프차 직렬 연결(송수압력 증가) — 화재층 적정 방사량', '가압송수장치 작동(송수구, 방재실) — 화재층 가압송수장치 상부층(펌프기동스위치 작동)'] },
+      { h: '2단계', t: '연결송수관설비를 통한 화재진압 절차', d: ['화재직하층 진입 — 도보, 비상용승강기를 통한 신속한 이동', '방수구 연결, 방수 — 옥내소화전 또는 연결송수관 방수구 사용', '화재진압 — 화재층으로 이동 진압'] }
+    ]
+  }, {
+    id: '7-3', title: '옥내소화전 겸용 연결송수관설비 이중배관 활용절차', page: '45–46', apply: '초고층건축물 (옥내소화전 겸용 연결송수관 설비)', tag: '이중배관',
+    overview: '50층 이상인 건축물의 옥내소화전 주배관 중 수직배관은 2개 이상(단, 옥내소화전설비의 성능에 지장이 없는 경우 연결송수관설비와 겸용). 이중배관은 하나의 송수구에 연결하여 한쪽 배관 밸브가 폐쇄되어 있는 경우에도 송수할 수 있도록 시공. 연결송수관설비 미겸용 시 단독배관으로 송수. 스프링클러설비는 연결송수관설비와 겸용 불가.',
+    situation: ['옥내소화전설비 겸용 연결송수관설비 송수구를 통한 송수가 필요한 경우'],
+    steps: [
+      { h: '1단계', t: '연결송수관설비 사용준비(고층부, 중층부, 저층부 송수구 확인)', d: ['화재층 확인 후 해당 송수구 확인 접결 — 고층부, 저층부 구분 연결. 하나의 배관 송수 불가 시 다른 예비배관의 송수구를 통한 송수', '소방펌프차 직렬연결 — 화재층 적정 방사량', '가압송수장치 작동(송수구, 방재실) — 화재층이 가압송수장치 상부층인 경우(펌프기동스위치 작동)'] },
+      { h: '2단계', t: '연결송수관설비를 통한 화재진압 절차', d: ['화재직하층 진입 — 도보, 비상용승강기를 통한 신속한 이동', '방수구 연결, 방수 — 옥내소화전 또는 연결송수관 방수구 사용', '화재진압 — 화재층으로 이동 진압'] }
+    ]
+  }, {
+    id: '7-4', title: '연결송수관설비 가압송수장치 미작동 시 조치방법', page: '47–48', apply: '고층건축물 (옥내소화전 겸용 연결송수관 설비)',
+    overview: '고층건물(70m 이상)의 경우 화재 시 소방 펌프차 및 가압송수장치 기동에 의해 건물 내 배관으로 송수. 구성: 연결송수관 가압송수장치, 동작제어반, 수동조작함, 감시제어반(방재실).',
+    situation: ['연결송수관설비 가압송수장치 미작동(수동조작함) 시 조치방법'],
+    steps: [
+      { h: '1단계', t: '방재실(감시제어반) 수동기동스위치 동작 (펌프 동작 시 종료)', d: ['① 자동(정지) → 수동', '② 정지 → 기동'] },
+      { h: '2단계', t: '가압송수장치 설치층(예. 11층) 동력제어반 펌프 수동동작', d: ['① 동력제어반: 자동(정지) → 수동', '② 기동스위치 누름'] }
+    ]
+  }, {
+    id: '7-5', title: '스프링클러(옥내) 배관 겸용, 방수량 부족 시 조치방법', page: '49–50', apply: '고층건물 [스프링클러(옥내) 겸용 연결송수관 설비]',
+    overview: '스프링클러(옥내) 겸용으로 스프링클러 유수검지장치 2차측 배관 파손으로 방수량 부족 시 조치방법.',
+    situation: ['배관파손 등 방수량 부족 시 조치방법'],
+    steps: [
+      { h: '1단계', t: '감시제어반에서 유수검지장치(습식, 준비작동식) 위치 확인', d: ['감시제어반 유수검지장치 압력스위치 작동표시등 확인 → 스프링클러 유수검지장치 2차측(헤드개방, 배관파손) 위치 확인', '확인방법: 해당층 유수검지장치 동작표시등 점등', '방수량 부족 원인: ① 배관류 파손 누수 ② 헤드 개방 누수'] },
+      { h: '2단계', t: '유수검지장치 1차측 개폐밸브 폐쇄', d: ['밸브 핸들을 시계방향으로 돌림 (스템 하강 = 밸브 폐쇄)'] }
+    ]
+  }, {
+    id: '7-6', title: '지하주차장 스프링클러설비(준비작동식)를 활용한 화재진압 방법', page: '51–53', apply: '지하주차장에 설치된 스프링클러설비 활용',
+    overview: '화재감지기 작동으로 준비작동식밸브(프리액션밸브) 자동 개방 후 헤드를 통한 살수. 송수구 설치개수 1개에서 5개 — 감시제어반에서 화재층을 확인하고 해당 송수구를 통한 송수. 화재진압 실패 원인(헤드 방사량 부족): ① 화재감지기의 단선 등(전기적 신호체계 불량) ② 개방된 헤드 개수의 증가로 방수압력이 감소.',
+    situation: ['방호구역에 따라 송수구가 다수 설치되어, 지하층 스프링클러 방호구역 화재 해당구역 송수구 확인이 어려운 상황'],
+    steps: [
+      { h: '1단계', t: '감시제어반에서 유수검지장치(준비작동식) 작동 위치 확인', d: ['위치확인: 감시제어반 유수검지장치 압력스위치 작동표시등 확인', '정상: 지하층 화재감지기 2회로 작동(화재장소 확인) + 압력스위치 작동 → P/V(개방확인) 표시등 점등', '비정상: 화재감지기 1회로만 작동 → 프리액션밸브 자동 미개방 → P/V 표시등 미점등'] },
+      { h: '2단계', t: '화재장소의 송수구의 위치 확인 후 송수', d: ['감시제어반에서 화재위치 확인 후 송수구역 표지 확인 후 접결'] }
+    ]
+  }],
+  check: [
+    ['송수구 마개가 부착되어 있고 송수압력범위 표지가 있다', '41'],
+    ['고층부·(중층부)·저층부 송수구 구분 표지가 있다', '43'],
+    ['가압송수장치 기동스위치(방재실·송수구 부근) 위치를 알고 있다', '43'],
+    ['방수구함 표면에 "방수구" 표시가 있다', '40'],
+    ['송수 쪽 게이트밸브 위치가 방재센터 또는 소화전함 내에 표시되어 있다', '40']
+  ],
+  citizen: '연결송수관은 소방차가 건물 밖 송수구에 호스를 연결해 위층으로 물을 보내는 배관입니다. 소방대가 쓰는 설비이므로, 평소 송수구 앞에 물건을 두지 말고 송수구 마개와 표지가 제자리에 있는지 확인하세요.',
+  warnings: [{ lvl: 'caution', t: '옥내소화전과 주배관 겸용인 경우 송수 시 고압이 걸립니다. 자위소방대가 옥내소화전을 사용 중이면 사용을 중지시키십시오.', src: 'p.40 SOP 7.2 ⑥' }, { lvl: 'info', t: '송수 초기에는 송수 쪽 게이트밸브가 폐쇄되어 있을 수 있습니다. 관계자에게 지시하여 신속히 개방하십시오.', src: 'p.40 SOP 7.1 ③' }]
+},
+{
+  code: 8, short: '살수', name: '연결살수설비', group: 'act', pages: '54–55',
+  forms: ['개방형헤드', '폐쇄형헤드', '기타'],
+  overview: '지하층, 무창층의 화재 시 소방 펌프차에 의해 송수구에 접결하여 건물 내 배관으로 송수. 송수구역 전체에 일반적으로 개방형헤드를 통하여 방수. 개방형헤드의 경우 하나의 송수구역은 10개 이하로, 10개 초과 시 송수구의 설치개수 증가로 송수구역일람표를 부착.',
+  sop: [
+    ['8.1', '관계자로부터 청취 또는 최초진입대원의 상황보고 등으로 판단하여 연소범위를 확실히 파악하고 활용, 특히, 개방형헤드의 경우 송수구역을 오인하여 송수하면 다량의 수손을 초래할 염려가 있음', []],
+    ['8.2', '송수구 부근에 송수구역, 선택밸브, 송수계통도가 게시되어 있으므로 내용을 충분히 파악한 후 조작', []],
+    ['8.3', '송수구는 65㎜ 쌍구형으로 설치하여야 하나 살수헤드수가 10개 이하인 것에 있어서는 단구형의 것으로 할 수 있다.', []],
+    ['8.4', '송수구역에 의해 송수구의 위치가 제각기 다를 수 있으므로 주의', []],
+    ['8.5', '개방형헤드가 설치되고 송수구역에 나누어져 있는 경우는 각종 밸브의 조작을 완료한 후 송수', []],
+    ['8.6', '펌프의 송수압력은 1~1.5 MPa를 목표로 조작', []],
+    ['8.7', '검색조를 편성하여 지하의 소화상황을 확인하며, 소화완료 후는 즉시 송수를 중지, 또한 검색조가 농연 등으로 진입할 수 없는 경우는 10~15분마다 송수를 일시 정지하고 내부의 변화 유무를 확인하고 필요에 따라 송수를 재개하는 등의 조치를 취한다.', []],
+    ['8.8', '헤드에서 살수에 의한 소화효과는 배출되는 연기의 열, 색깔 및 수증기로부터 판단', []],
+    ['8.9', '화점실의 온도가 높은 경우는 살수설비의 배관 등이 탈락하는 경우도 예상되므로 장시간 송수하더라도 소화효과가 없는 경우는 별도의 소화수단을 병행', []],
+    ['8.10', '배관에는 배수밸브가 설치되어 있으므로 송수정지 후 헤드에서의 계속적인 살수를 중지시킬 수 있다.', []]
+  ],
+  sopPage: 54,
+  procedures: [{
+    id: '8-1', title: '지하층 등 연결살수설비 활용한 진압 절차', page: '55', apply: '지하층건물 (개방형헤드 연결살수설비)',
+    steps: [
+      { h: '1단계', t: '송수구 위치와 화점과 송수구역일람표를 확인하여 접결할 송수구 확인' },
+      { h: '2단계', t: '송수구에 소방펌프차 접결' },
+      { h: '3단계', t: '송수구역 개방형헤드를 통한 살수' }
+    ]
+  }],
+  check: [
+    ['송수구 부근에 송수구역·선택밸브·송수계통도가 게시되어 있다', '54'],
+    ['송수구역일람표가 부착되어 있다(송수구역이 여럿인 경우)', '55'],
+    ['송수구 주변에 장애물이 없다', '54']
+  ],
+  citizen: '연결살수설비는 지하층에 불이 났을 때 소방차가 밖에서 물을 보내 천장 헤드로 뿌리는 설비입니다. 송수구 옆에 붙은 구역 안내표(송수구역일람표)가 잘 보이도록 관리하세요.',
+  warnings: [{ lvl: 'caution', t: '개방형헤드는 송수구역을 오인하여 송수하면 다량의 수손이 발생합니다. 송수구역일람표와 화점을 대조한 뒤 접결하십시오.', src: 'p.54 SOP 8.1' }]
+},
+{
+  code: 9, short: '제연', name: '제연설비', group: 'act', pages: '56–60',
+  forms: ['거실제연', '부속실제연(급기가압)', '자연제연', '스모크타워', '기타'],
+  overview: '거실제연설비: 일반적으로 화재실은 연기를 배연하고, 인접실은 공기를 급기. 부속실제연설비: 피난로의 연기유입 방지를 위해 급기가압방식을 적용하는 제연설비.',
+  sop: [
+    ['9.1', '자연제연방식은 극장, 공연장 등의 무대부에 설치되고 수동개방장치는 배연구(창 등) 부근에 설치되어 있으며 취급방법이 명시', []],
+    ['9.2', '제연설비 설치대상물의 경우에는 관계자에게 제연설비의 설치장소 및 제연방법 등을 물어보고 필요에 따라 관계자에게 조작시켜 활용', []],
+    ['9.3', '제연설비의 활용은 화재 초기부터 중기까지의 활용이 효과적이고 중기 이후 대량의 연기가 발생할 때에는 제연효과가 적다.', []],
+    ['9.4', '제연설비 작동 시에 환기설비가 작동되고 있으면 공기가 휘돌아 제연효과가 저하되므로 환기설비를 정지', []],
+    ['9.5', '스모크 타워(smoke tower): 원격조작의 경우에는 방재센타 등에 의하여 작동 상황을 확인하고 수동인 경우에는 배연구의 개폐 유무에 관하여 관계자로부터 의견 청취', []],
+    ['9.6', '지하주차장: 제연설비의 작동방법이 방재센타 등에 의한 원격작동인가 또는 연기감지기에 의한 연동작동인가를 확인', []],
+    ['9.7~9.8', '제어반 전원차단, 팬(급기·배기)·댐퍼 미작동 시 조치는 첨부 자료(아래 조치 카드) 참조', []]
+  ],
+  sopPage: 56,
+  procedures: [{
+    id: '9-1', title: '제연설비 제어반 전원차단 등 조치방법', page: '57–58', apply: '건물내부(종합상황실, 방재실)',
+    situation: ['제연설비 제어반 전원차단으로 제연설비 미동작 상황'],
+    steps: [
+      { h: '1단계', t: '제연설비 제어반 전원차단 확인(방재실, 제연설비 제어반)', d: ['교류전원 등 소등(적색) 확인'] },
+      { h: '2단계', t: '제연설비 제어반 전원스위치 ON', d: ['전원스위치 OFF → ON'] }
+    ],
+    note: '제조사마다 차이가 있음. 보편적으로 수신반 내부에 위치.'
+  }, {
+    id: '9-2', title: '제연설비 팬(급기, 배기) 미동작 시 조치방법', page: '59–60', apply: '건물내부(종합상황실, 방재실)',
+    overview: '제연설비 팬(급기팬, 배기팬): 제연설비에 필요한 공기를 급기 또는 배기하는 팬.',
+    situation: ['제연설비 제어반 미동작 시 팬을 수동으로 기동시켜야 되는 상황'],
+    steps: [
+      { h: '1단계', t: '제연설비 제어반 연동스위치 수동 전환: 연동(정지) → 수동', d: ['① 팬 운전스위치: 연동(정지) → 수동', '② 화재위치(제연구역) 수동기동스위치 올림'] },
+      { h: '2단계', t: '제연설비 동력제어반 팬 운전스위치 수동 조치: 연동 → 수동', d: ['① 팬 운전스위치: 연동(정지) → 수동', '② 화재위치(제연구역) 기동스위치 누름'] }
+    ]
+  }],
+  check: [
+    ['제연설비 제어반 교류전원 표시등이 정상이다', '58'],
+    ['구역별 급기·배기 팬 운전스위치가 "자동"에 있다', '58'],
+    ['제연 작동 시 정지시킬 환기설비를 알고 있다', '56'],
+    ['지하주차장 제연설비 작동방식(원격·연동)을 알고 있다', '56']
+  ],
+  citizen: '제연설비는 불이 났을 때 연기를 빼내고 계단·부속실에 바람을 넣어 피난로로 연기가 들어오지 않게 하는 설비입니다. 평소 제어반 스위치가 "자동"에 있는지 확인하세요. 제연설비가 작동할 때 일반 환기설비는 꺼야 효과가 납니다.',
+  warnings: [{ lvl: 'caution', t: '급기·배기 팬과 댐퍼를 수동 조작하면 연기 흐름과 피난 동선이 바뀔 수 있습니다. 피난 중인 계단·부속실 방향과 대피 상황을 확인한 뒤 조작하십시오.', src: EXT }, { lvl: 'info', t: '제연설비 작동 시 환기설비가 작동 중이면 제연효과가 저하되므로 환기설비를 정지하십시오.', src: 'p.56 SOP 9.4' }, W_POWER, W_MAKER]
+},
+{
+  code: 10, short: '콘센', name: '비상콘센트설비', group: 'act', pages: '61–62',
+  forms: ['단상 220V', '기타'],
+  overview: '고층건물 화재 시 전원 개폐장치의 단락 등으로 소화 활동에 어려움이 발생 — 11층 이상의 층, 지하 3개층 이상 바닥면적 1,000㎡ 이상, 터널 500m 이상. 화재 시 소방대 조명등 또는 소화활동상 필요한 장비의 전원설비. 구성: 위치표시등, 비상콘센트 보호함, 배선용 차단기, 플러그 접속기(교류 220V 단상).',
+  sop: [
+    ['개요', '11층 이상의 고층건물, 지하층 등에 설치되어 있으므로 조명기구 등을 유효하게 활용', []],
+    ['10.1', '보호함의 문을 개방하고 어댑터를 꽂는다.', []],
+    ['10.2', '휴대한 전기기구의 플러그를 어댑터와 연결', []],
+    ['10.3', '어댑터 코드에 연결된 줄을 풀어 훅(hook)에 걸고 플러그가 빠지지 않게 한다.', []],
+    ['10.4', '휴대한 기구의 스위치를 넣고 전선을 연장', []]
+  ],
+  sopPage: 61,
+  procedures: [{
+    id: '10-1', title: '비상콘센트설비 활용(개요)', page: '62', apply: '고층 건축물 등',
+    steps: [
+      { h: '선착대', t: '화재현장 도착 시 비상콘센트설비 설치 대상여부 확인' },
+      { h: '활용', t: '옥내소화전함 상부에 내장된 플러그접속기 위치 확인 및 접속 후 사용' }
+    ]
+  }],
+  check: [
+    ['비상콘센트 위치표시등이 켜져 있다', '62'],
+    ['보호함(옥내소화전함 상부 내장형 포함) 위치를 알고 있다', '62'],
+    ['배선용 차단기가 투입(ON)되어 있다', '62']
+  ],
+  citizen: '비상콘센트는 불이 났을 때 소방대가 조명이나 장비 전원을 쓰는 콘센트입니다. 보통 옥내소화전함 위쪽에 있습니다. 평소 위치표시등이 켜져 있는지 확인하고 보호함 앞을 막지 마세요.',
+  warnings: [{ lvl: 'caution', t: '플러그 접속 시 젖은 장갑·침수 상태에서의 감전에 주의하십시오.', src: EXT }]
+},
+{
+  code: 11, short: '무선', name: '무선통신보조설비', group: 'act', pages: '63–66',
+  forms: ['누설동축케이블', '누설동축케이블+공중선', '공중선(안테나)', '옥외안테나', '기타'],
+  overview: '지하가 등에서 소방대가 서로 무선 통신을 하기 위한 설비. 무선기와 접속하는 단자(옥외 안테나)를 지상이나 방재센터에 설치. 방식: 누설동축케이블 / 누설동축케이블 및 공중선 / 공중선(안테나).',
+  sop: [
+    ['11.1', '지상 또는 방재실, 수위실 등에 설치되어 있는 무전기 접속단자를 찾는다. (바닥으로부터 0.8m 이상 1.5m 이하의 위치)', []],
+    ['11.2', '무전기 접속단자함의 문을 열고 단자의 캡을 벗긴 후 접속용 커넥터(방재실이나 소방차에 비치)를 연결', []],
+    ['11.3', '휴대용무전기의 안테나를 분리시킨 후 접속단자에 연결된 커넥터의 반대 부분을 연결시킨 후 교신', []],
+    ['11.4', '지상의 접속단자에 접속한 휴대무전기는 지하가 진입대원과의 교신 전용이 되고 당해 무전기는 지상과의 교신은 불가능', []],
+    ['11.5', '접속단자에 접속한 휴대무전기와 지하가에 있는 대원이 교신 중의 경우는 다른 지하가의 대원은 교신을 짧게 한다.', []]
+  ],
+  sopPage: 63,
+  procedures: [{
+    id: '11-1', title: '무선통신보조설비 활용(개요)', page: '64–65', apply: '지하건축물 등',
+    overview: '무선기 접속단자함: 표지 "무선기접속단자함", 높이 0.8~1.5m 이내 설치, 타용도단자함과 5m 이상 이격, 300m 이내 설치.',
+    steps: [
+      { h: '선착대', t: '화재현장 도착 시 무선통신보조설비 방식 확인' },
+      { h: '활용', t: '무전기 연결단자(커넥터) 확인 및 결속 후 사용', d: ['일반적으로 송수구 인근에 무선기접속단자함이 없는 경우는 옥외안테나 설치대상으로 판단, 무전기 접속 없이 무선통신 가능', '무선통신보조설비 옥외안테나는 출입구 인근(건축물, 지하가 등)에 설치, 통신가능거리가 표시되어 있음'] }
+    ]
+  }],
+  tech: [
+    ['A 타입', '66', '무전기 좌측부 연결 — HT, GP3688'],
+    ['B 타입', '66', '무전기 중앙부 연결 — PD-468, PD-488, PD-568, IS시리즈, NIS시리즈, E시리즈, IQ-400N, PF-400K, IP400, TK3217, TK-3317'],
+    ['C 타입', '66', '무전기 우측부 연결 — PD-668, AD-400, DPH-400, DXR-480, N-4000, N-4800, NXP-400, NXT-400, A-400, TA-400, TL-400, MYT5800, PZ-400clear, XP-400N']
+  ],
+  check: [
+    ['"무선기접속단자함" 표지가 있고 높이 0.8~1.5m에 설치되어 있다', '65'],
+    ['접속용 커넥터가 방재실에 비치되어 있다', '63'],
+    ['옥외안테나 통신가능거리 표시가 있다(옥외안테나 방식)', '65']
+  ],
+  citizen: '무선통신보조설비는 지하에서 소방대 무전이 잘 되도록 돕는 설비입니다. 건물 밖이나 방재실에 "무선기접속단자함"이 있습니다. 접속용 커넥터를 방재실에 보관하고 위치를 소방대에 알려 주세요.',
+  warnings: [{ lvl: 'info', t: '지상 접속단자에 연결한 무전기는 지하 진입대원과의 교신 전용이 되며 지상과는 교신할 수 없습니다.', src: 'p.63 SOP 11.4' }]
+},
+{
+  code: 12, short: '연소', name: '연소방지설비', group: 'act', pages: '67–68',
+  forms: ['습식 이외(연결살수형)', '기타'],
+  overview: '지하구에 설치하는 소화활동설비로 지하구 내 화재확산을 방지하기 위한 설비. 습식 이외의 방식. 살수구역(3m 이상)은 환기구 기준 350m 이내마다 1개, 방수헤드·방화벽·화재차단재·내화구조.',
+  sop: [
+    ['12.1', '설치대상 — 지하구(전력 또는 통신사업용인 것에 한한다)', []],
+    ['12.2', '활용 요령', ['현장 관계자나 자동화재탐지설비의 수신반을 확인하여 화점 위치를 파악', '펌프차를 연결송수구 인근에 위치', '화점구역의 좌우 살수구역을 점령하여 65㎜ 소방호스를 연결송수구에 연결송수', '1개의 송수구(1개의 살수구역) 송수압력은 약 0.2~0.5MPa로 한다.', '화재 진행 상황을 수신반으로 계속 확인']]
+  ],
+  sopPage: 67,
+  procedures: [{
+    id: '12-1', title: '연소방지설비 활용(개요)', page: '68', apply: '공동구',
+    steps: [{ h: '활용', t: '연소방지설비 송수구를 통한 지속적인 살수' }]
+  }],
+  check: [
+    ['송수구별 살수구역 표시가 있다', '68'],
+    ['송수구 주변에 장애물이 없다', '67']
+  ],
+  citizen: '연소방지설비는 전력·통신 지하구에서 불이 번지지 않도록 소방차가 송수구로 물을 보내 뿌리는 설비입니다. 송수구와 구역 표시가 잘 보이도록 관리하세요.',
+  warnings: [{ lvl: 'info', t: '화점구역의 좌우 살수구역을 점령하여 송수하고, 화재 진행 상황은 수신반으로 계속 확인하십시오.', src: 'p.67 SOP 12.2' }]
+}];
+
+const GROUPS = { alarm: '감시·경보', ext: '소화', act: '소화활동' };
+const LANDMARKS = {
+  entry: { name: '출입구', short: '출입' },
+  stair: { name: '계단', short: '계단' },
+  elev: { name: '승강기', short: 'EV' },
+  control: { name: '방재실', short: '방재' }
+};
+/* ================= 유틸 ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = p => (p || 'id') + Math.random().toString(36).slice(2, 9);
+function newToken() {
+  const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const b = new Uint8Array(16);
+  (window.crypto || window.msCrypto).getRandomValues(b); return Array.from(b, x => a[x % a.length]).join('');
+}
+const today = () => new Date().toISOString().slice(0, 10);
+const nowStr = () => { const d = new Date(); return d.toISOString().slice(0, 10) + ' ' + d.toTimeString().slice(0, 5); };
+const ft = c => FT.find(f => f.code === +c);
+const pg = p => p ? '<span class="pg">교재 p.' + esc(p) + '</span>' : '';
+const srcTag = s => s === EXT ? '<span class="pg ext">교재 외 보충</span>' : '<span class="pg">교재 ' + esc(s) + '</span>';
+const pad2 = n => (n < 10 ? '0' : '') + n;
+const imgSrc = p => (window.TB_IMG && window.TB_IMG[p]) || ('img/p' + pad2(p) + '.jpg');
+function pagesOf(s) { const out = []; String(s).split(/[,·]/).forEach(part => { const m = part.match(/(\d+)\s*[–-]\s*(\d+)/); if (m) { for (let i = +m[1]; i <= +m[2]; i++) out.push(i); } else { const n = parseInt(part, 10); if (!isNaN(n)) out.push(n); } }); return out.filter((v, i, a) => a.indexOf(v) === i && v >= 2 && v <= 68); }
+function thumbs(pages, label) { if (!pages.length) return ''; return '<div class="tbwrap"><span class="eyebrow">' + (label || '교재 원문') + '</span><div class="tbs">' + pages.map(p => '<button type="button" class="tb" data-act="lb" data-p="' + p + '" aria-label="교재 p.' + p + ' 크게 보기"><img src="' + imgSrc(p) + '" alt="교재 p.' + p + ' 촬영본" loading="lazy"><span>p.' + p + '</span></button>').join('') + '</div></div>'; }
+const glyph = (code, lg) => { const f = ft(code); return '<span class="fg ' + f.group + (lg ? ' lg' : '') + '" aria-hidden="true">' + esc(f.short) + '</span>'; };
+const maskNum = n => String(n || '').replace(/(\d{2,4})-(\d{3,4})-(\d{4})/, (m, a, b, c) => a + '-' + '*'.repeat(b.length) + '-' + c);
+
+let toastT;
+function toast(msg) { let t = $('#toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
+function copyText(txt, el) {
+  const ok = () => toast('복사했습니다');
+  try { navigator.clipboard.writeText(txt).then(ok, () => selectEl(el)); } catch (e) { selectEl(el); }
+}
+function selectEl(el) { if (!el) return; const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('선택했습니다. 복사(Ctrl+C)하세요'); }
+
+/* ================= 저장소 ================= */
+const KEY = 'fqr.v1';
+let mem = null;
+function load() { try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch (e) { } return null; }
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(DB)); DB._savedAt = nowStr(); } catch (e) { toast('이 기기에 저장하지 못했습니다(용량 초과 또는 저장소 차단). 사진 수를 줄이세요.'); }
+}
+const SKEY = 'fqr.sess';
+function loadSess() { try { return JSON.parse(sessionStorage.getItem(SKEY)) || null; } catch (e) { return null; } }
+function saveSess() { try { sessionStorage.setItem(SKEY, JSON.stringify(SESS)); } catch (e) { } }
+
+/* ================= 예시 데이터(가상 건물) ================= */
+function seed() {
+  const b1 = {
+    id: 'b_hanbit', demo: true, token: newToken(), pin: '1234',
+    name: '(가상) 한빛타워', address: '부산광역시 ○○구 가상로 119 (예시 주소)', use: '업무시설, 근린생활시설',
+    above: 15, below: 3, area: '18,500㎡ (예시)', structure: '철근콘크리트조', occupancy: '주간 약 900명 / 야간 약 20명 (예시)',
+    contacts: [
+      { role: '주간 · 종합방재실', name: '방재실 근무자', phone: '051-000-0119' },
+      { role: '야간 · 경비실', name: '경비 근무자', phone: '051-000-0120' },
+      { role: '소방안전관리자', name: '홍길동(가상)', phone: '010-0000-0000' }
+    ],
+    mask: true,
+    approach: '남측 정문 진입(폭 6m). 북측 이면도로는 폭 4m로 대형차 진입 곤란 (예시)',
+    staging: '정문 우측 소방차 전용구역 — 송수구까지 약 15m (예시)',
+    hazards: ['지하3층 전기실 이산화탄소 소화설비(방호구역 2개)', '지하2층 주차장 전기차 충전구역(6면)', '옥상 태양광 패널'],
+    receiverLoc: '1층 동측 종합방재실 — 주출입구에서 오른쪽 20m',
+    siameseLoc: '남측 외벽 주출입구 왼쪽 — 연결송수관(고층부·저층부), 스프링클러 송수구',
+    connector: 'B',
+    verify: { status: 'un', by: '', at: '' },
+    updatedAt: '2026-10-08 09:10',
+    floors: [
+      { id: 'f1', name: '1F', bg: '', rooms: [
+        { id: 'r1', label: '로비', x: 240, y: 160, w: 300, h: 220 },
+        { id: 'r2', label: '종합방재실', x: 560, y: 160, w: 180, h: 140 },
+        { id: 'r3', label: '계단실 A', x: 60, y: 160, w: 160, h: 120 },
+        { id: 'r4', label: '근린생활시설', x: 60, y: 300, w: 160, h: 140 },
+        { id: 'r5', label: 'EV홀', x: 240, y: 390, w: 300, h: 60 },
+        { id: 'r6', label: '계단실 B', x: 560, y: 320, w: 180, h: 120 }
+      ], marks: [
+        { id: 'm1', kind: 'entry', x: 390, y: 490, label: '주출입구(남측)' },
+        { id: 'm2', kind: 'entry', x: 30, y: 220, label: '서측 출입구' },
+        { id: 'm3', kind: 'stair', x: 140, y: 220, label: '특별피난계단 A' },
+        { id: 'm4', kind: 'stair', x: 650, y: 380, label: '특별피난계단 B' },
+        { id: 'm5', kind: 'elev', x: 390, y: 420, label: '비상용승강기' },
+        { id: 'm6', kind: 'control', x: 600, y: 200, label: '종합방재실' }
+      ] },
+      { id: 'fb2', name: 'B2', bg: '', rooms: [
+        { id: 'r7', label: '주차장', x: 60, y: 60, w: 680, h: 340 },
+        { id: 'r8', label: '전기차 충전구역', x: 520, y: 290, w: 200, h: 90 },
+        { id: 'r9', label: '유수검지장치실', x: 60, y: 420, w: 160, h: 70 }
+      ], marks: [
+        { id: 'm7', kind: 'stair', x: 300, y: 450, label: '특별피난계단 A' },
+        { id: 'm8', kind: 'elev', x: 390, y: 450, label: '비상용승강기' }
+      ] },
+      { id: 'fb3', name: 'B3', bg: '', rooms: [
+        { id: 'r10', label: '전기실(CO₂ 방호구역 1)', x: 60, y: 60, w: 300, h: 200 },
+        { id: 'r11', label: '발전기실(CO₂ 방호구역 2)', x: 380, y: 60, w: 200, h: 200 },
+        { id: 'r12', label: '소화가스 저장실', x: 600, y: 60, w: 140, h: 120 },
+        { id: 'r13', label: '소화펌프실', x: 60, y: 300, w: 300, h: 160 }
+      ], marks: [
+        { id: 'm9', kind: 'stair', x: 470, y: 400, label: '특별피난계단 A' }
+      ] }
+    ],
+    facilities: [
+      { id: 'x1', type: 1, floorId: 'f1', x: 650, y: 200, label: '종합방재실 R형 복합수신기', loc: '종합방재실 안쪽 벽면 중앙. 출입문에서 정면.', form: 'R형 수신기', maker: '(예시) A사', notes: '모니터 하단 키보드·마우스로 SOL 수동 제어', photos: [], insp: [{ date: '2026-09-15', result: '정상', memo: '전원·스위치 정상 위치 확인', items: [] }] },
+      { id: 'x2', type: 2, floorId: 'f1', x: 700, y: 200, label: '자동화재탐지설비 수신부', loc: '복합수신기 일체형', form: 'R형', maker: '(예시) A사', notes: '화재기록장치 USB 단자: 수신기 우측 하단', photos: [], insp: [] },
+      { id: 'x3', type: 3, floorId: 'f1', x: 700, y: 260, label: '비상방송 조작부', loc: '수신기 오른쪽 랙', form: '우선경보방식', maker: '', notes: '', photos: [], insp: [] },
+      { id: 'x4', type: 9, floorId: 'f1', x: 600, y: 260, label: '제연설비 제어반(FAN)', loc: '복합수신기 하단 패널', form: '부속실제연(급기가압)', maker: '', notes: '', photos: [], insp: [] },
+      { id: 'x5', type: 7, floorId: 'f1', x: 300, y: 490, label: '연결송수관 송수구(고층부·저층부)', loc: '주출입구 왼쪽 외벽, 지면에서 약 0.8m', form: '습식 · 옥내소화전 겸용', maker: '', notes: '가압송수장치 기동스위치: 송수구 옆 함 + 방재실', photos: [], insp: [] },
+      { id: 'x6', type: 5, floorId: 'f1', x: 230, y: 490, label: '스프링클러 송수구', loc: '연결송수관 송수구 왼쪽', form: '기타', maker: '', notes: '지하층 구역별 송수구 표지 부착', photos: [], insp: [] },
+      { id: 'x7', type: 4, floorId: 'f1', x: 260, y: 420, label: '1층 옥내소화전(방수구 겸용)', loc: 'EV홀 서측 벽', form: '옥내 · 자동기동방식', maker: '', notes: '상부 비상콘센트 내장', photos: [], insp: [] },
+      { id: 'x8', type: 11, floorId: 'f1', x: 520, y: 490, label: '무선기접속단자함', loc: '주출입구 오른쪽 화단 옆', form: '누설동축케이블', maker: '', notes: '커넥터 B타입, 방재실 비치', photos: [], insp: [] },
+      { id: 'x9', type: 5, floorId: 'fb2', x: 140, y: 455, label: 'B2 준비작동식밸브(프리액션밸브)', loc: '주차장 서측 끝 유수검지장치실, 계단실 A에서 왼쪽 30m', form: '준비작동식', maker: '', notes: '', photos: [], insp: [] },
+      { id: 'x10', type: 6, floorId: 'fb3', x: 330, y: 280, label: '전기실 CO₂ 수동조작함', loc: '전기실 출입문 오른쪽 벽', form: '이산화탄소', maker: '', notes: '방호구역 1(전기실), 2(발전기실)', photos: [], insp: [] },
+      { id: 'x11', type: 4, floorId: 'fb3', x: 120, y: 380, label: '소화펌프 동력제어반(옥내소화전·SP)', loc: '소화펌프실 출입문 왼쪽', form: '옥내 · 자동기동방식', maker: '', notes: '주펌프·충압펌프 선택스위치', photos: [], insp: [] }
+    ]
+  };
+  const b2 = {
+    id: 'b_dongbaek', demo: true, token: newToken(), pin: '1234',
+    name: '(가상) 동백물류창고', address: '부산광역시 △△구 예시산업로 77 (예시 주소)', use: '창고시설',
+    above: 1, below: 0, area: '4,200㎡ (예시)', structure: '철골조 샌드위치패널', occupancy: '주간 약 30명 (예시)',
+    contacts: [{ role: '주간 · 관리사무소', name: '관리 담당', phone: '051-000-0777' }],
+    mask: false, approach: '정문(동측) 진입, 야적장 경유 (예시)', staging: '야적장 북측 (예시)',
+    hazards: ['랙식 고적재(높이 약 8m, 예시)', '지게차 충전구역'],
+    receiverLoc: '정문 경비실 P형 수신기', siameseLoc: '해당 없음(연결송수관 미설치)', connector: '모름',
+    verify: { status: 'ok', by: '○○소방서 예방과(가상)', at: '2026-08-20' }, updatedAt: '2026-08-19 15:00',
+    floors: [{ id: 'g1', name: '1F', bg: '', rooms: [{ id: 'q1', label: '창고동', x: 60, y: 60, w: 560, h: 400 }, { id: 'q2', label: '경비실', x: 640, y: 380, w: 120, h: 80 }], marks: [{ id: 'q3', kind: 'entry', x: 700, y: 490, label: '정문' }, { id: 'q4', kind: 'control', x: 700, y: 420, label: '경비실(수신기)' }] }],
+    facilities: [
+      { id: 'y1', type: 2, floorId: 'g1', x: 670, y: 420, label: 'P형 수신기', loc: '경비실 책상 뒤 벽', form: 'P형', maker: '', notes: '', photos: [], insp: [] },
+      { id: 'y2', type: 4, floorId: 'g1', x: 100, y: 100, label: '옥내소화전(수동기동)', loc: '창고 북서측 기둥', form: '옥내 · 수동기동(ON/OFF)방식', maker: '', notes: '함 외부 기동(적색) 버튼', photos: [], insp: [] },
+      { id: 'y3', type: 4, floorId: 'g1', x: 640, y: 60, label: '옥외소화전', loc: '창고 북동측 외부', form: '옥외소화전', maker: '', notes: '', photos: [], insp: [] }
+    ]
+  };
+  return { v: 1, buildings: [b1, b2], audit: [
+    { at: '2026-10-08 09:10', actor: '소방안전관리자(가상)', action: '건물 개황 수정', bId: 'b_hanbit', detail: '위험요소 추가' },
+    { at: '2026-08-20 10:30', actor: '○○소방서 예방과(가상)', action: '소방서 검증', bId: 'b_dongbaek', detail: '' }
+  ] };
+}
+
+let DB = load() || seed();
+let SESS = loadSess() || { staff: '', mgr: {}, viewed: {} };
+const S = { view: 'mgr', bId: null, sub: 'info', floorId: null, tool: 'select', sel: null, fTab: 'home', fFac: null, fFloor: null, hc: false, man: 1, opsQ: '', opsB: null, fromQR: false, confirmReissue: false, inspDraft: {} };
+
+const B = id => DB.buildings.find(b => b.id === id);
+function audit(action, bId, detail, actor) {
+  DB.audit.unshift({ at: nowStr(), actor: actor || (SESS.staff ? SESS.staff : '소방안전관리자'), action, bId, detail: detail || '' });
+  if (DB.audit.length > 500) DB.audit.length = 500;
+}
+function touch(b, what) {
+  b.updatedAt = nowStr();
+  if (b.verify.status === 'ok') { b.verify.status = 'un'; b.verify.changedAfter = true; }
+  save();
+}
+const verifyChip = b => b.verify.status === 'ok'
+  ? '<span class="chip ok">검증됨 · ' + esc(b.verify.at) + '</span>'
+  : '<span class="chip un">관계자 입력 · 미검증' + (b.verify.changedAfter ? ' (검증 후 수정됨)' : '') + '</span>';
+
+/* ================= 렌더 ================= */
+function render() {
+  const app = $('#app');
+  app.innerHTML = topBar() + '<main id="main">' + view() + '</main>' + (S.view === 'field' && SESS.staff && S.bId ? fieldTabs() : '') + overlays();
+  document.documentElement.style.overflow = (S.modal || S.lb) ? 'hidden' : '';
+  afterRender();
+}
+function topBar() {
+  const tabs = [['mgr', '소방안전관리자'], ['field', '출동대원 현장카드'], ['ops', '119종합상황실'], ['manual', '교재 콘텐츠'], ['design', '설계·보안']];
+  return '<header class="top noprint"><div class="top-in"><div class="brand"><span class="qr"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>소방시설 활용 시스템<br><small>SOP 235 소방시설 활용절차방법 기반 · 프로토타입</small></span></div>' +
+    '<nav class="tabs" aria-label="사용자 화면">' + tabs.map(t => '<button class="tab" data-nav="' + t[0] + '" aria-current="' + (S.view === t[0]) + '">' + t[1] + '</button>').join('') + '</nav>' +
+    '<div class="sess">' + (SESS.staff ? '인증: ' + esc(SESS.staff) + ' <button data-act="logout-staff">로그아웃</button>' : '대원·상황실 미인증') + '</div></div></header>';
+}
+function view() {
+  switch (S.view) {
+    case 'pub': return pubView();
+    case 'field': return fieldView();
+    case 'ops': return opsView();
+    case 'manual': return manualView();
+    case 'design': return designView();
+    default: return mgrView();
+  }
+}
+
+/* ---------- 공통 조각 ---------- */
+function warnHTML(w) {
+  const k = { danger: '생명안전', caution: '주의', info: '참고' }[w.lvl];
+  return '<div class="warn-box ' + w.lvl + '"><b class="k">' + k + '</b><div>' + esc(w.t) + ' ' + srcTag(w.src) + '</div></div>';
+}
+function procHTML(p, open) {
+  let h = '<details class="proc"' + (open ? ' open' : '') + '><summary><h4>' + esc(p.title) + '</h4>' + pg(p.page) + '</summary><div class="body">';
+  if (p.apply) h += '<div class="apply"><b>적용</b><span>' + esc(p.apply) + '</span></div>';
+  if (p.overview) h += '<p class="small">' + esc(p.overview) + '</p>';
+  if (p.situation) h += '<div class="sit"><b>선착소방대 화재현장 대응 가능 상황</b><ul>' + p.situation.map(s => '<li>' + esc(s) + '</li>').join('') + '</ul></div>';
+  h += '<ol class="steps">' + p.steps.map(s => '<li><span class="sn">' + esc(s.h) + '</span><div><b>' + esc(s.t) + '</b>' + (s.d ? '<ul>' + s.d.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '') + '</div></li>').join('') + '</ol>';
+  if (p.emergency) h += '<div class="emer"><b>비상조치 사항</b><ul>' + p.emergency.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>';
+  if (p.note) h += '<p class="note">※ ' + esc(p.note) + '</p>';
+  h += thumbs(pagesOf(p.page), '교재 원문 · 사진·화살표는 원문에서 확인');
+  return h + '</div></details>';
+}
+function sopHTML(f) {
+  return '<ol class="sop">' + f.sop.map(s => '<li><span>' + esc(s[0]) + '</span><div>' + esc(s[1]) + (s[2].length ? '<ul>' + s[2].map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '') + '</div></li>').join('') + '</ol>';
+}
+function relevantProcs(f, form) {
+  if (!form) return f.procedures;
+  const tagged = f.procedures.filter(p => p.tag);
+  if (!tagged.length) return f.procedures;
+  return f.procedures.filter(p => !p.tag || form.indexOf(p.tag) > -1 || p.tag.indexOf(form) > -1);
+}
+
+/* ---------- 개황도 SVG ---------- */
+const VW = 800, VH = 520;
+function planSVG(b, fl, opt) {
+  opt = opt || {};
+  let g = '';
+  if (!fl.bg && !opt.ro) { for (let x = 0; x <= VW; x += 40) g += '<line class="gridl" x1="' + x + '" y1="0" x2="' + x + '" y2="' + VH + '"/>'; for (let y = 0; y <= VH; y += 40) g += '<line class="gridl" x1="0" y1="' + y + '" x2="' + VW + '" y2="' + y + '"/>'; }
+  let s = '<svg class="plan" id="plan" viewBox="0 0 ' + VW + ' ' + VH + '" role="img" aria-label="' + esc(b.name + ' ' + fl.name + ' 개황도') + '"><rect x="0" y="0" width="' + VW + '" height="' + VH + '" fill="var(--surface)"/>';
+  if (fl.bg) s += '<image href="' + fl.bg + '" x="0" y="0" width="' + VW + '" height="' + VH + '" preserveAspectRatio="xMidYMid meet" opacity="' + (opt.ro ? 1 : .55) + '"/>';
+  s += g;
+  fl.rooms.forEach(r => {
+    s += '<g class="room mk" data-kind="room" data-id="' + r.id + '"><rect x="' + r.x + '" y="' + r.y + '" width="' + r.w + '" height="' + r.h + '" rx="2"/><text x="' + (r.x + 8) + '" y="' + (r.y + 20) + '">' + esc(r.label) + '</text></g>';
+    if (S.sel && S.sel.id === r.id && !opt.ro) s += '<rect class="sel" x="' + (r.x - 4) + '" y="' + (r.y - 4) + '" width="' + (r.w + 8) + '" height="' + (r.h + 8) + '"/>';
+  });
+  fl.marks.forEach(m => {
+    const L = LANDMARKS[m.kind]; const fill = m.kind === 'entry' ? 'var(--ok)' : m.kind === 'control' ? 'var(--signal)' : 'var(--panel)';
+    s += '<g class="mk" data-kind="mark" data-id="' + m.id + '"><rect x="' + (m.x - 18) + '" y="' + (m.y - 14) + '" width="36" height="28" rx="4" fill="' + fill + '"/><text x="' + m.x + '" y="' + (m.y + 5) + '" text-anchor="middle" font-size="12" fill="#fff">' + L.short + '</text>' +
+      (opt.labels !== false ? '<text x="' + m.x + '" y="' + (m.y + 30) + '" text-anchor="middle" font-size="12" fill="var(--ink)" paint-order="stroke" stroke="var(--surface)" stroke-width="4">' + esc(m.label) + '</text>' : '') + '</g>';
+    if (S.sel && S.sel.id === m.id && !opt.ro) s += '<rect class="sel" x="' + (m.x - 24) + '" y="' + (m.y - 20) + '" width="48" height="40"/>';
+  });
+  b.facilities.filter(x => x.floorId === fl.id).forEach(x => {
+    const f = ft(x.type); const col = 'var(--g-' + f.group + ')'; const tc = f.group === 'alarm' ? '#000' : '#fff';
+    s += '<g class="mk" data-kind="fac" data-id="' + x.id + '"><circle cx="' + x.x + '" cy="' + x.y + '" r="18" fill="' + col + '" stroke="var(--surface)" stroke-width="3"/><text x="' + x.x + '" y="' + (x.y + 4) + '" text-anchor="middle" font-size="' + (f.short.length > 2 ? 10 : 12) + '" fill="' + tc + '">' + esc(f.short) + '</text></g>';
+    if (opt.hl === x.id) s += '<circle class="hl" cx="' + x.x + '" cy="' + x.y + '" r="30"/>';
+    if (S.sel && S.sel.id === x.id && !opt.ro) s += '<circle class="sel" cx="' + x.x + '" cy="' + x.y + '" r="26"/>';
+  });
+  return s + '</svg>';
+}
+
+/* ================= 소방안전관리자 ================= */
+function mgrView() {
+  if (!S.bId) {
+    return '<div class="stack"><div class="sect-h"><div><span class="eyebrow">소방안전관리자 · 등록·관리</span><h2>내 건물</h2></div><button class="btn pri" data-act="new-building">새 건물 등록</button></div>' +
+      '<p class="muted">건물 개황, 층별 개황도, 소방시설 위치·조작부 사진, 점검 기록을 등록하고 QR을 발급합니다. 입력한 내용은 소방서 검증 전까지 "관계자 입력·미검증"으로 표시됩니다.</p>' +
+      '<div class="grid2">' + DB.buildings.map(b => '<div class="card stack" style="gap:8px"><div class="spread"><h3>' + esc(b.name) + '</h3>' + (b.demo ? '<span class="demo-flag">예시·가상 건물</span>' : '') + '</div><p class="small muted">' + esc(b.address) + '</p><div class="row">' + verifyChip(b) + '<span class="small muted">시설 ' + b.facilities.length + '개 · 층 ' + b.floors.length + '개</span></div><div><button class="btn" data-act="open-b" data-id="' + b.id + '">관리하기</button></div></div>').join('') + '</div></div>';
+  }
+  const b = B(S.bId);
+  if (!SESS.mgr[b.id]) {
+    return '<div class="card stack" style="max-width:420px"><span class="eyebrow">자기 건물 편집 권한</span><h2>' + esc(b.name) + '</h2><form id="mgr-login" class="stack"><label class="f">건물 관리 PIN<input id="mgr-pin" class="inp" type="password" inputmode="numeric" autocomplete="off"></label><p class="small muted">프로토타입 PIN: <b class="mono">1234</b>. 운영 시 소방안전관리자 계정 인증(본인확인)으로 대체합니다.</p><div class="row"><button class="btn pri" type="submit">확인</button><button class="btn ghost" type="button" data-act="back-list">목록</button></div></form></div>';
+  }
+  const subs = [['info', '건물 개황'], ['plan', '개황도·시설 배치'], ['fac', '시설 목록·점검'], ['qr', 'QR 발급'], ['log', '변경 이력']];
+  let body = '';
+  if (S.sub === 'info') body = infoForm(b);
+  else if (S.sub === 'plan') body = planEditor(b);
+  else if (S.sub === 'fac') body = facList(b);
+  else if (S.sub === 'qr') body = qrPanel(b);
+  else body = logPanel(b);
+  return '<div class="stack"><div class="spread"><div><button class="btn ghost sm" data-act="back-list">← 내 건물</button> <h2 style="display:inline;margin-left:6px">' + esc(b.name) + '</h2></div><div class="row">' + verifyChip(b) + '<span class="small muted">최종 수정 ' + esc(b.updatedAt) + '</span></div></div>' +
+    '<nav class="subtabs" aria-label="관리 메뉴">' + subs.map(s => '<button class="subtab" data-sub="' + s[0] + '" aria-current="' + (S.sub === s[0]) + '">' + s[1] + '</button>').join('') + '</nav>' + body + '</div>';
+}
+
+function infoForm(b) {
+  const fld = (k, l, type) => '<label class="f">' + l + '<input id="bf-' + k + '" data-bf="' + k + '" class="inp" type="' + (type || 'text') + '" value="' + esc(b[k]) + '"></label>';
+  return '<div class="stack"><div class="card stack"><h3>기본 정보</h3><div class="grid2">' + fld('name', '건물명') + fld('address', '주소') + fld('use', '용도') + fld('structure', '구조') + fld('above', '지상 층수', 'number') + fld('below', '지하 층수', 'number') + fld('area', '연면적') + fld('occupancy', '수용인원') + '</div></div>' +
+    '<div class="card stack"><h3>대원이 먼저 찾는 위치</h3><p class="small muted">현장카드 첫 화면에 크게 표시됩니다. "주출입구에서 오른쪽 20m"처럼 기준점과 방향·거리로 적어 주세요.</p><div class="grid2">' + fld('receiverLoc', '수신기 / 종합방재실 위치') + fld('siameseLoc', '송수구 위치') + fld('approach', '진입로') + fld('staging', '소방차 부서 위치') + '<label class="f">무전기 커넥터 비치 타입 ' + pg('66') + '<select id="bf-connector" data-bf="connector" class="inp">' + ['A', 'B', 'C', '모름'].map(o => '<option' + (b.connector === o ? ' selected' : '') + '>' + o + '</option>').join('') + '</select></label></div></div>' +
+    '<div class="card stack"><h3>위험요소</h3><label class="f">한 줄에 하나씩 (예: 지하3층 전기실 CO₂ 방호구역, 위험물 저장소, 전기차 충전구역)<textarea id="bf-hazards" data-bf="hazards" class="inp" rows="4">' + esc(b.hazards.join('\n')) + '</textarea></label></div>' +
+    '<div class="card stack"><div class="spread"><h3>관계자 연락처 (주·야간)</h3><label class="row small"><input type="checkbox" id="bf-mask" data-bf="mask"' + (b.mask ? ' checked' : '') + '> 대원 화면에서도 번호를 가리고 "번호 보기"로 확인(열람 기록)</label></div>' +
+    '<div class="tw"><table class="t"><thead><tr><th>구분</th><th>이름</th><th>전화</th><th></th></tr></thead><tbody>' + b.contacts.map((c, i) => '<tr><td><input class="inp" id="ct-r' + i + '" data-ct="' + i + '" data-k="role" value="' + esc(c.role) + '"></td><td><input class="inp" id="ct-n' + i + '" data-ct="' + i + '" data-k="name" value="' + esc(c.name) + '"></td><td><input class="inp mono" id="ct-p' + i + '" data-ct="' + i + '" data-k="phone" value="' + esc(c.phone) + '" inputmode="tel"></td><td><button class="btn sm ghost" data-act="del-ct" data-i="' + i + '">삭제</button></td></tr>').join('') + '</tbody></table></div>' +
+    '<div><button class="btn sm" data-act="add-ct">연락처 추가</button></div><p class="small muted">관계자 연락처는 개인정보입니다. QR을 찍은 일반인에게는 표시되지 않고, 인증된 대원·상황실에만 보입니다.</p></div></div>';
+}
+
+function planEditor(b) {
+  if (!S.floorId || !b.floors.find(f => f.id === S.floorId)) S.floorId = b.floors[0] && b.floors[0].id;
+  const fl = b.floors.find(f => f.id === S.floorId);
+  const tools = [['select', '선택·이동', '<span class="lmk" style="background:var(--muted)">↖</span>'], ['room', '구획 그리기', '<span class="lmk" style="background:var(--muted)">▭</span>']]
+    .concat(Object.keys(LANDMARKS).map(k => [k, LANDMARKS[k].name, '<span class="lmk" style="background:' + (k === 'entry' ? 'var(--ok)' : k === 'control' ? 'var(--signal)' : 'var(--panel)') + '">' + LANDMARKS[k].short + '</span>']))
+    .concat(FT.map(f => ['fac' + f.code, f.name.replace(/설비$/, ''), glyph(f.code)]));
+  const floorBar = '<div class="row">' + b.floors.map(f => '<button class="btn sm' + (f.id === S.floorId ? ' pri' : '') + '" data-act="pick-floor" data-id="' + f.id + '">' + esc(f.name) + '</button>').join('') +
+    '<form id="add-floor" class="row" style="gap:6px"><input id="nf-name" class="inp" style="width:90px" placeholder="예: 2F"><button class="btn sm" type="submit">층 추가</button></form></div>';
+  if (!fl) return '<div class="card stack">' + floorBar + '<p class="muted">층을 먼저 추가하세요.</p></div>';
+  const side = selPanel(b, fl);
+  return '<div class="mgr"><div class="stack">' + floorBar +
+    '<div class="card stack" style="gap:10px"><div class="spread"><b>' + esc(fl.name) + ' 개황도</b><div class="row small"><label class="btn sm">도면·사진 배경 올리기<input type="file" id="bg-file" accept="image/*" hidden></label>' + (fl.bg ? '<button class="btn sm ghost" data-act="clear-bg">배경 지우기</button>' : '') + '<button class="btn sm ghost" data-act="rename-floor">층 이름 바꾸기</button><button class="btn sm warn" data-act="del-floor">층 삭제</button></div></div>' +
+    '<div class="toolbar" role="toolbar" aria-label="배치 도구">' + tools.map(t => '<button class="tool" data-tool="' + t[0] + '" aria-pressed="' + (S.tool === t[0]) + '"' + (t[0] === 'select' || t[0] === 'room' ? '' : ' title="개황도로 끌어다 놓기"') + '>' + t[2] + t[1] + '</button>').join('') + '</div>' +
+    '<p class="small muted">' + toolHint() + '</p><div class="planwrap">' + planSVG(b, fl) + '</div>' +
+    '<p class="small muted">목표: 대원이 10초 안에 위치를 찾는 수준. 출입구·계단·승강기·방재실을 먼저 찍고, 구획 이름은 현장 표지와 같은 말로 적으세요.</p></div></div>' +
+    '<aside class="stack">' + side + '</aside></div>';
+}
+function toolHint() {
+  if (S.tool === 'select') return '도구 막대의 시설·출입구 아이콘을 개황도로 끌어다 놓으면 그 자리에 추가됩니다. 놓인 아이콘은 눌러서 작동법을 보고, 끌어서 옮깁니다.';
+  if (S.tool === 'room') return '빈 곳을 눌러 끌면 구획(실)이 만들어집니다.';
+  if (LANDMARKS[S.tool]) return '개황도를 누르면 ' + LANDMARKS[S.tool].name + ' 표시가 놓입니다. 도구를 개황도로 끌어다 놓아도 됩니다.';
+  const f = ft(S.tool.slice(3)); return '개황도를 누르면 ' + f.name + ' 아이콘이 놓이고 오른쪽에서 상세를 입력합니다.';
+}
+function selPanel(b, fl) {
+  if (!S.sel) return '<div class="card stack"><h3>범례</h3>' + ['alarm', 'ext', 'act'].map(g => '<div><div class="eyebrow">' + GROUPS[g] + '</div><div class="row" style="gap:6px;margin-top:4px">' + FT.filter(f => f.group === g).map(f => '<span class="row" style="gap:4px">' + glyph(f.code) + '<span class="small">' + esc(f.name) + '</span></span>').join('') + '</div></div>').join('') + '<p class="small muted">교재 12개 분류(SOP 235 1~12장)와 1:1로 대응합니다.</p></div>';
+  if (S.sel.kind === 'fac') return facEditor(b, b.facilities.find(x => x.id === S.sel.id));
+  const coll = S.sel.kind === 'room' ? fl.rooms : fl.marks; const it = coll.find(x => x.id === S.sel.id);
+  if (!it) { S.sel = null; return ''; }
+  return '<div class="card stack"><h3>' + (S.sel.kind === 'room' ? '구획' : LANDMARKS[it.kind].name) + '</h3><label class="f">이름<input id="sel-label" class="inp" data-sel-label value="' + esc(it.label) + '"></label><div class="row"><button class="btn warn sm" data-act="del-sel">삭제</button><button class="btn ghost sm" data-act="desel">닫기</button></div></div>';
+}
+function facEditor(b, x) {
+  if (!x) { S.sel = null; return ''; }
+  const f = ft(x.type);
+  const tab = S.selTab || 'how';
+  const head = '<div class="row">' + glyph(x.type, 1) + '<div style="min-width:0"><div class="eyebrow">' + GROUPS[f.group] + ' · 교재 p.' + f.pages + '</div><h3>' + esc(f.name) + '</h3><div class="small muted">' + esc(x.label) + '</div></div></div>' +
+    '<div class="subtabs" role="tablist"><button class="subtab" data-act="sel-tab" data-t="how" aria-current="' + (tab === 'how') + '">작동법(교재)</button><button class="subtab" data-act="sel-tab" data-t="edit" aria-current="' + (tab === 'edit') + '">정보 입력</button></div>';
+  if (tab === 'how') return '<div class="card stack">' + head + '<div class="row"><button class="btn sm pri" data-act="how-modal" data-id="' + x.id + '">크게 보기</button><button class="btn ghost sm" data-act="desel">닫기</button></div>' + howHTML(b, x, false) + '</div>';
+  return '<div class="card stack">' + head +
+    '<label class="f">시설 이름<input id="fx-label" class="inp" data-fx="label" value="' + esc(x.label) + '"></label>' +
+    '<label class="f">층<select id="fx-floor" class="inp" data-fx="floorId">' + b.floors.map(o => '<option value="' + o.id + '"' + (o.id === x.floorId ? ' selected' : '') + '>' + esc(o.name) + '</option>').join('') + '</select></label>' +
+    '<label class="f">위치 설명 (기준점·방향·거리)<textarea id="fx-loc" class="inp" data-fx="loc" rows="2">' + esc(x.loc) + '</textarea></label>' +
+    '<div class="grid2"><label class="f">형식 <span class="small">(형식에 맞는 조치 카드가 먼저 표시됩니다)</span><select id="fx-form" class="inp" data-fx="form"><option value="">선택</option>' + f.forms.map(o => '<option' + (x.form === o ? ' selected' : '') + '>' + o + '</option>').join('') + '</select></label><label class="f">제조사<input id="fx-maker" class="inp" data-fx="maker" value="' + esc(x.maker) + '"></label></div>' +
+    '<label class="f">대원 참고 메모<textarea id="fx-notes" class="inp" data-fx="notes" rows="2">' + esc(x.notes) + '</textarea></label>' +
+    '<div class="stack" style="gap:6px"><b class="small">이 건물 조작부 사진</b><div class="photos">' + x.photos.map((p, i) => '<figure><img src="' + p + '" alt="' + esc(x.label) + ' 조작부 사진 ' + (i + 1) + '"><button class="btn sm" data-act="del-photo" data-i="' + i + '">삭제</button></figure>').join('') + '</div><label class="btn sm" style="align-self:flex-start">사진 추가<input type="file" id="ph-file" accept="image/*" hidden></label><p class="small muted">스위치·밸브가 보이게 찍고, 조작 방향을 메모에 적어 주세요. 교재: 조작부 위치는 제조사마다 다릅니다.</p></div>' +
+    thumbs(pagesOf(f.pages), '비교용 교재 사진') +
+    '<div class="row"><button class="btn sm" data-act="go-insp" data-id="' + x.id + '">점검 기록하기</button><button class="btn warn sm" data-act="del-sel">시설 삭제</button><button class="btn ghost sm" data-act="desel">닫기</button></div></div>';
+}
+function howHTML(b, x, full) {
+  const f = ft(x.type); const procs = relevantProcs(f, x.form); const rest = f.procedures.filter(p => procs.indexOf(p) < 0);
+  return f.warnings.map(warnHTML).join('') +
+    '<div class="howbox"><b>관계자용 쉬운 말</b><p>' + esc(f.citizen) + '</p></div>' +
+    (x.photos.length ? '<div class="stack" style="gap:6px"><span class="eyebrow">이 건물 조작부 사진</span><div class="photos">' + x.photos.map((p, i) => '<img src="' + p + '" alt="' + esc(x.label) + ' 조작부 사진 ' + (i + 1) + '">').join('') + '</div></div>' : '') +
+    '<div class="eyebrow">조치 카드 · 교재 p.' + f.pages + (x.form ? ' · 형식 "' + esc(x.form) + '" 기준' : ' · 형식 미입력(전체 표시)') + '</div>' +
+    procs.map((p, i) => procHTML(p, full || i === 0)).join('') +
+    (rest.length ? '<details class="proc"><summary><h4>다른 형식의 조치 카드 ' + rest.length + '개</h4></summary><div class="body">' + rest.map(p => procHTML(p, false)).join('') + '</div></details>' : '') +
+    (f.tech ? '<details class="proc"><summary><h4>기술자료</h4></summary><div class="body">' + f.tech.map(t => '<div><b>' + esc(t[0]) + '</b> ' + pg(t[1]) + '<p class="small">' + esc(t[2]) + '</p></div>').join('') + thumbs(pagesOf(f.tech.map(t => t[1]).join(','))) + '</div></details>' : '') +
+    '<details class="proc"' + (full ? ' open' : '') + '><summary><h4>SOP 235 요점 (' + f.code + '장)</h4>' + pg(f.sopPage) + '</summary><div class="body">' + sopHTML(f) + thumbs([f.sopPage]) + '</div></details>' +
+    '<div class="howbox"><b>평상시 확인할 것</b><ul class="small">' + f.check.map(c => '<li>' + esc(c[0]) + ' ' + pg(c[1]) + '</li>').join('') + '</ul><div><button class="btn sm" data-act="go-insp" data-id="' + x.id + '">점검 기록하기</button></div></div>';
+}
+function overlays() {
+  let h = '';
+  if (S.modal && S.bId) {
+    const b = B(S.bId); const x = b && b.facilities.find(y => y.id === S.modal);
+    if (x) { const f = ft(x.type); const fl = b.floors.find(o => o.id === x.floorId);
+      h += '<div class="ov" role="dialog" aria-modal="true" aria-label="' + esc(f.name) + ' 작동법"><div class="ov-bar"><div class="row" style="min-width:0">' + glyph(x.type, 1) + '<div style="min-width:0"><b>' + esc(f.name) + ' 작동법</b><div class="small" style="opacity:.8">' + esc(x.label) + (fl ? ' · ' + esc(fl.name) : '') + (x.loc ? ' · ' + esc(x.loc) : '') + '</div></div></div><button class="btn sm pri" data-act="modal-close">닫기</button></div><div class="ov-body stack">' + howHTML(b, x, true) + '</div></div>'; }
+  }
+  if (S.lb) { const p = S.lb;
+    h += '<div class="ov lb" role="dialog" aria-modal="true" aria-label="교재 p.' + p + '"><div class="ov-bar"><b>교재 p.' + p + '</b><div class="row"><button class="btn sm" data-act="lb" data-p="' + Math.max(2, p - 1) + '"' + (p <= 2 ? ' disabled' : '') + '>◀ 이전 쪽</button><button class="btn sm" data-act="lb" data-p="' + Math.min(68, p + 1) + '"' + (p >= 68 ? ' disabled' : '') + '>다음 쪽 ▶</button><button class="btn sm pri" data-act="lb-close">닫기</button></div></div><div class="lb-img"><img src="' + imgSrc(p) + '" alt="교재 p.' + p + ' 촬영본"></div></div>'; }
+  return h;
+}
+
+function facList(b) {
+  const cur = S.sel && S.sel.kind === 'fac' ? b.facilities.find(x => x.id === S.sel.id) : null;
+  const rows = FT.map(f => {
+    const xs = b.facilities.filter(x => x.type === f.code); if (!xs.length) return '';
+    return xs.map(x => { const fl = b.floors.find(o => o.id === x.floorId); const last = x.insp[0];
+      return '<tr><td>' + glyph(f.code) + '</td><td><b>' + esc(x.label) + '</b><div class="small muted">' + esc(f.name) + (x.form ? ' · ' + esc(x.form) : '') + '</div></td><td>' + esc(fl ? fl.name : '-') + '</td><td class="small">' + esc(x.loc) + '</td><td>' + (last ? '<span class="chip ' + (last.result === '정상' || last.result === '조치완료' ? 'ok' : 'bad') + '">' + esc(last.result) + '</span><div class="small muted mono">' + esc(last.date) + '</div>' : '<span class="small muted">기록 없음</span>') + '</td><td><button class="btn sm" data-act="sel-fac" data-id="' + x.id + '">점검·편집</button></td></tr>'; }).join('');
+  }).join('');
+  const missing = FT.filter(f => !b.facilities.some(x => x.type === f.code));
+  return '<div class="mgr"><div class="stack"><div class="card"><div class="tw"><table class="t"><thead><tr><th></th><th>시설</th><th>층</th><th>위치</th><th>최근 점검</th><th></th></tr></thead><tbody>' + (rows || '<tr><td colspan="6" class="muted">등록된 시설이 없습니다. 개황도에서 아이콘을 배치하세요.</td></tr>') + '</tbody></table></div></div>' +
+    '<div class="card small"><b>미등록 분류</b> <span class="muted">— 설치되어 있지 않으면 그대로 두세요. 현장카드에 "없음"으로 표시됩니다.</span><div class="row" style="gap:6px;margin-top:6px">' + missing.map(f => '<span class="row" style="gap:4px">' + glyph(f.code) + '<span>' + esc(f.name) + '</span></span>').join('') + '</div></div></div>' +
+    '<aside class="stack">' + (cur ? inspPanel(b, cur) + facEditor(b, cur) : '<div class="card muted">시설을 고르면 점검 기록과 편집 화면이 열립니다.</div>') + '</aside></div>';
+}
+function inspPanel(b, x) {
+  const f = ft(x.type); const d = S.inspDraft[x.id] || (S.inspDraft[x.id] = { date: today(), items: {}, memo: '' });
+  return '<div class="card stack"><div class="spread"><h3>점검 기록</h3><span class="small muted">교재 근거 정상상태 확인</span></div>' +
+    '<div class="checklist">' + f.check.map((c, i) => '<div class="chk"><span class="q small">' + esc(c[0]) + ' ' + pg(c[1]) + '</span><span class="seg"><button class="o" data-chk="' + i + '" data-v="o" aria-pressed="' + (d.items[i] === 'o') + '">정상</button><button class="x" data-chk="' + i + '" data-v="x" aria-pressed="' + (d.items[i] === 'x') + '">이상</button></span></div>').join('') + '</div>' +
+    '<div class="grid2"><label class="f">점검일<input id="in-date" class="inp" type="date" value="' + esc(d.date) + '"></label><label class="f">조치 결과<select id="in-res" class="inp"><option>자동 판정</option><option>조치완료</option></select></label></div>' +
+    '<label class="f">메모<textarea id="in-memo" class="inp" rows="2">' + esc(d.memo) + '</textarea></label><button class="btn pri" data-act="save-insp" data-id="' + x.id + '">점검 결과 저장</button>' +
+    '<p class="small muted">점검 주기·법정 점검 항목은 교재 범위 밖입니다. 이 체크리스트는 교재 조치절차의 "정상 위치"를 거꾸로 확인하는 자체 점검용입니다.</p>' +
+    (x.insp.length ? '<div class="tw"><table class="t small"><thead><tr><th>일자</th><th>결과</th><th>메모</th></tr></thead><tbody>' + x.insp.map(r => '<tr><td class="mono">' + esc(r.date) + '</td><td>' + esc(r.result) + '</td><td>' + esc(r.memo) + '</td></tr>').join('') + '</tbody></table></div>' : '') + '</div>';
+}
+
+function qrURL(b) { return location.href.split('#')[0] + '#q-' + b.token; }
+function qrPanel(b) {
+  const spots = [['건물 외부 · 주출입구', '소방차 부서 위치에서 보이는 곳'], ['종합방재실 출입문', '방재실 출입문 바깥쪽'], ['수신기 측면', '수신기 본체 옆면']];
+  return '<div class="stack"><div class="card stack noprint"><h3>QR에 담기는 것</h3><p>QR에는 건물 정보가 들어가지 않습니다. 무작위 토큰이 붙은 주소 하나만 담깁니다.</p><div class="copybox mono small" id="qr-url">' + esc(qrURL(b)) + '</div>' +
+    '<div class="grid2"><div class="warn-box info"><b class="k">일반인</b><div>QR을 찍으면 "즉시 대피 · 119 신고" 안내와 건물명만 보입니다. 도면·시설 위치·연락처는 보이지 않습니다.</div></div><div class="warn-box info"><b class="k">대원·상황실</b><div>인증 후 현장카드 전체(위치, 개황도, 조작부 사진, 관계자 전화)를 봅니다. 열람은 변경 이력에 기록됩니다.</div></div></div>' +
+    '<div class="row"><button class="btn" data-act="sim-scan">QR 스캔 시뮬레이션</button>' + (S.confirmReissue ? '<span class="small"><b>기존 QR 3장이 모두 무효가 됩니다.</b></span><button class="btn warn" data-act="reissue">재발급 확정</button><button class="btn ghost" data-act="cancel-reissue">취소</button>' : '<button class="btn warn" data-act="ask-reissue">토큰 재발급</button>') + '</div>' +
+    '<p class="small muted">QR 분실·도난, 관리 주체 변경 시 재발급하세요. 부착 라벨은 이 화면을 브라우저 인쇄(Ctrl+P)로 출력합니다 — 미리보기 화면에서는 인쇄가 막혀 있을 수 있습니다.</p></div>' +
+    '<div class="labels">' + spots.map((s, i) => '<div class="qrl"><div class="hd">소방대 전용 · 소방시설 QR</div><div class="qbox" id="qrc' + i + '"></div><b>' + esc(b.name) + '</b><small>부착: ' + esc(s[0]) + ' (' + esc(s[1]) + ')</small><small>일반인: 즉시 대피 후 119 신고</small><small class="mono">ID ' + esc(b.token.slice(0, 4)) + '…</small></div>').join('') + '</div></div>';
+}
+function logPanel(b) {
+  const L = DB.audit.filter(a => a.bId === b.id);
+  return '<div class="card"><div class="tw"><table class="t"><thead><tr><th>일시</th><th>누가</th><th>무엇을</th><th>내용</th></tr></thead><tbody>' + (L.map(a => '<tr><td class="mono small">' + esc(a.at) + '</td><td>' + esc(a.actor) + '</td><td>' + esc(a.action) + '</td><td class="small">' + esc(a.detail) + '</td></tr>').join('') || '<tr><td colspan="4" class="muted">기록 없음</td></tr>') + '</tbody></table></div><p class="small muted" style="margin-top:8px">편집, QR 재발급, 대원·상황실 열람, 번호 보기, 소방서 검증을 기록합니다.</p></div>';
+}
+
+/* ================= 공개(QR 일반인) ================= */
+function pubView() {
+  const b = DB.buildings.find(x => x.token === S.qrToken);
+  if (!b) return '<div class="pub"><div class="card stack"><h2>사용할 수 없는 QR입니다</h2><p>재발급되었거나 잘못된 QR입니다. 화재 시 즉시 대피하고 119에 신고하십시오.</p></div></div>';
+  return '<div class="pub"><div class="alarm"><span class="eyebrow" style="color:#fff">소방대 전용 QR</span><h2>불이 났다면 지금 바로 대피하고 119에 신고하세요</h2><p>엘리베이터 대신 계단을 이용하세요. <span class="pg ext" style="background:#fff">교재 외 보충</span></p></div>' +
+    '<div class="card stack"><div class="eyebrow">건물</div><h3>' + esc(b.name) + '</h3><div class="call"><span>화재·구조 신고</span><span class="num">119</span></div></div>' +
+    '<div class="warn-box info"><b class="k">공개 범위</b><div>일반인에게는 이 화면이 전부입니다. 건물 도면, 소방시설 위치, 관계자 연락처는 소방대원·119상황실 인증 후에만 보입니다.</div></div>' +
+    '<button class="btn big pri" data-act="pub-to-staff">소방대원·상황실 인증</button></div>';
+}
+
+/* ================= 출동대원 현장카드 ================= */
+function staffLogin(where) {
+  return '<div class="card stack" style="max-width:440px;margin:0 auto"><span class="eyebrow">' + where + '</span><h2>대원·상황실 인증</h2><form id="staff-login" class="stack"><label class="f">소속·이름<input id="st-name" class="inp" placeholder="예: ○○119안전센터 소방교 김○○" autocomplete="off"></label><label class="f">인증 코드<input id="st-code" class="inp" type="password" inputmode="numeric" autocomplete="off"></label><p class="small muted">프로토타입 인증 코드: <b class="mono">119119</b>. 운영 시 기관 계정(SSO) 또는 단말 인증으로 대체합니다.</p><button class="btn pri big" type="submit">인증</button></form></div>';
+}
+function fieldView() {
+  if (!SESS.staff) return staffLogin('출동대원 현장카드');
+  if (!S.bId) return '<div class="field stack"><h2>건물 선택</h2><p class="muted">현장에서는 건물 QR을 찍으면 바로 열립니다.</p>' + DB.buildings.map(b => '<button class="facrow" data-act="field-open" data-id="' + b.id + '"><div class="meta"><b>' + esc(b.name) + '</b><span class="small muted">' + esc(b.address) + '</span></div>' + verifyChip(b) + '</button>').join('') + '</div>';
+  const b = B(S.bId);
+  if (!SESS.viewed[b.id]) { SESS.viewed[b.id] = 1; saveSess(); audit('현장카드 열람', b.id, S.fromQR ? 'QR 경유' : '목록 경유', SESS.staff); save(); }
+  const head = '<div class="fhead"><div class="spread"><span class="eyebrow" style="color:inherit;opacity:.8">현장카드 · ' + esc(b.use) + ' · 지상 ' + esc(b.above) + ' / 지하 ' + esc(b.below) + '</span><button class="btn sm" data-act="hc">' + (S.hc ? '일반 화면' : '고대비') + '</button></div><h2>' + esc(b.name) + '</h2><div class="row">' + verifyChip(b) + '<span class="small" style="opacity:.8">이 기기 저장본 · ' + esc(b.updatedAt) + '</span></div></div>';
+  let body = '';
+  if (S.fFac) body = fieldFac(b, b.facilities.find(x => x.id === S.fFac));
+  else if (S.fTab === 'fac') body = fieldFacList(b);
+  else if (S.fTab === 'plan') body = fieldPlan(b);
+  else body = fieldHome(b);
+  return '<div class="field stack' + (S.hc ? ' hc' : '') + '" style="' + (S.hc ? 'background:var(--bg);color:var(--ink);padding:12px;border-radius:8px' : '') + '">' + head + body + '</div>';
+}
+function contactRow(b, c, i) {
+  const shown = !b.mask || (S.reveal && S.reveal[b.id + i]);
+  return '<div class="call"><div><div class="small muted">' + esc(c.role) + '</div><b>' + esc(c.name) + '</b></div><div class="row"><span class="num" id="num' + i + '">' + esc(shown ? c.phone : maskNum(c.phone)) + '</span>' +
+    (shown ? '<a class="btn sm pri" href="tel:' + esc(c.phone.replace(/[^0-9+]/g, '')) + '">전화</a><button class="btn sm" data-act="copy-num" data-i="' + i + '">복사</button>' : '<button class="btn sm" data-act="reveal" data-i="' + i + '">번호 보기</button>') + '</div></div>';
+}
+function fieldHome(b) {
+  const present = new Set(b.facilities.map(x => x.type));
+  return '<div class="tile"><span class="k">수신기 · 종합방재실</span><span class="v">' + esc(b.receiverLoc || '미등록') + '</span></div>' +
+    '<div class="tile"><span class="k">송수구</span><span class="v">' + esc(b.siameseLoc || '미등록') + '</span></div>' +
+    (b.hazards.length ? '<div class="tile hz"><span class="k">위험요소</span><ul>' + b.hazards.map(h => '<li>' + esc(h) + '</li>').join('') + '</ul></div>' : '') +
+    (present.has(6) ? warnHTML(FT[5].warnings[0]) : '') +
+    '<div class="tile"><span class="k">관계자 전화</span>' + b.contacts.map((c, i) => contactRow(b, c, i)).join('') + '<span class="small muted">전화 버튼이 동작하지 않으면 번호를 직접 누르세요.</span></div>' +
+    '<div class="grid2"><div class="tile"><span class="k">진입로</span><span class="v small">' + esc(b.approach) + '</span></div><div class="tile"><span class="k">소방차 부서</span><span class="v small">' + esc(b.staging) + '</span></div></div>' +
+    '<div class="tile"><span class="k">설비 유무 (누르면 조치 카드)</span><div class="presence">' + FT.map(f => '<button class="pres' + (present.has(f.code) ? '' : ' no') + '" ' + (present.has(f.code) ? 'data-act="field-type" data-code="' + f.code + '"' : 'disabled') + '>' + glyph(f.code) + '<span>' + esc(f.name.replace(/설비$/, '')) + '<br><small class="muted">' + (present.has(f.code) ? '있음' : '없음') + '</small></span></button>').join('') + '</div>' +
+    (present.has(11) ? '<span class="small">무전기 커넥터 비치: <b>' + esc(b.connector) + ' 타입</b> ' + pg('66') + '</span>' : '') + '</div>';
+}
+function fieldFacList(b) {
+  const xs = b.facilities.slice().sort((a, c) => a.type - c.type || (S.fType && (a.type === S.fType ? -1 : 0)));
+  const ordered = S.fType ? xs.filter(x => x.type === S.fType).concat(xs.filter(x => x.type !== S.fType)) : xs;
+  return (S.fType ? '<div class="spread"><b>' + esc(ft(S.fType).name) + ' 먼저 표시</b><button class="btn sm" data-act="clear-ftype">전체</button></div>' : '') +
+    ordered.map(x => { const fl = b.floors.find(o => o.id === x.floorId); return '<button class="facrow" data-act="field-fac" data-id="' + x.id + '">' + glyph(x.type, 1) + '<div class="meta"><b>' + esc(x.label) + '</b><span class="small muted">' + esc((fl ? fl.name + ' · ' : '') + x.loc) + '</span></div></button>'; }).join('');
+}
+function fieldPlan(b) {
+  if (!S.fFloor || !b.floors.find(f => f.id === S.fFloor)) S.fFloor = b.floors[0] && b.floors[0].id;
+  const fl = b.floors.find(f => f.id === S.fFloor);
+  return '<div class="row">' + b.floors.map(f => '<button class="btn big' + (f.id === S.fFloor ? ' pri' : '') + '" data-act="field-floor" data-id="' + f.id + '">' + esc(f.name) + '</button>').join('') + '</div>' +
+    (fl ? '<div class="planwrap" id="fplan">' + planSVG(b, fl, { ro: true, hl: S.fHL }) + '</div><p class="small muted">아이콘을 누르면 조치 카드가 열립니다. 녹색=출입구, 적색=방재실.</p>' : '<p>개황도가 없습니다.</p>');
+}
+function fieldFac(b, x) {
+  if (!x) { S.fFac = null; return fieldHome(b); }
+  const f = ft(x.type); const fl = b.floors.find(o => o.id === x.floorId); const procs = relevantProcs(f, x.form);
+  return '<div class="row"><button class="btn big" data-act="field-back">← 돌아가기</button><button class="btn big" data-act="field-show-plan" data-id="' + x.id + '">개황도에서 보기</button></div>' +
+    '<div class="tile"><div class="row">' + glyph(x.type, 1) + '<div style="min-width:0"><span class="k">' + esc(f.name) + ' · ' + esc(fl ? fl.name : '') + '</span><div class="v">' + esc(x.label) + '</div></div></div><div><b>위치</b> ' + esc(x.loc || '미등록') + '</div>' + (x.form ? '<div><b>형식</b> ' + esc(x.form) + (x.maker ? ' · ' + esc(x.maker) : '') + '</div>' : '') + (x.notes ? '<div><b>메모</b> ' + esc(x.notes) + '</div>' : '') +
+    (x.photos.length ? '<div class="photos">' + x.photos.map((p, i) => '<img src="' + p + '" alt="' + esc(x.label) + ' 조작부 사진 ' + (i + 1) + '">').join('') + '</div>' : '<span class="small muted">이 건물 조작부 사진 미등록 — 교재 사진은 교재 해당 쪽을 참고</span>') +
+    '<span class="small muted">' + (b.verify.status === 'ok' ? '소방서 검증된 정보' : '관계자 입력 · 미검증 정보 — 현장에서 확인') + '</span></div>' +
+    f.warnings.map(warnHTML).join('') +
+    '<div class="eyebrow">조치 카드 · 교재 p.' + f.pages + (procs.length < f.procedures.length ? ' · 이 시설 형식(' + esc(x.form) + ')에 해당하는 카드' : '') + '</div>' +
+    procs.map((p, i) => procHTML(p, i === 0)).join('') +
+    (procs.length < f.procedures.length ? '<button class="btn" data-act="show-all-procs" data-code="' + f.code + '">이 분류의 다른 조치 카드도 보기</button>' : '') +
+    '<details class="proc"><summary><h4>SOP 235 요점 (' + f.code + '장)</h4>' + pg(f.sopPage) + '</summary><div class="body">' + sopHTML(f) + thumbs([f.sopPage]) + '</div></details>';
+}
+function fieldTabs() {
+  const t = [['home', '요약'], ['fac', '시설'], ['plan', '개황도']];
+  return '<nav class="ftabs noprint" aria-label="현장카드 메뉴">' + t.map(x => '<button data-ftab="' + x[0] + '" aria-current="' + (S.fTab === x[0] && !S.fFac) + '">' + x[1] + '</button>').join('') + '</nav>';
+}
+
+/* ================= 119 종합상황실 ================= */
+function opsView() {
+  if (!SESS.staff) return staffLogin('119종합상황실 신고접수 지원');
+  const q = S.opsQ.trim();
+  const res = DB.buildings.filter(b => !q || (b.name + b.address).replace(/\s/g, '').indexOf(q.replace(/\s/g, '')) > -1);
+  const b = S.opsB && B(S.opsB);
+  return '<div class="ops"><div class="stack"><label class="f">주소·건물명 검색<input id="ops-q" class="inp" value="' + esc(S.opsQ) + '" placeholder="예: 가상로 119, 한빛" autocomplete="off"></label>' +
+    res.map(x => '<button class="result" data-act="ops-pick" data-id="' + x.id + '" aria-current="' + (S.opsB === x.id) + '"><span><b>' + esc(x.name) + '</b><br><span class="small muted">' + esc(x.address) + '</span></span>' + (x.verify.status === 'ok' ? '<span class="chip ok">검증</span>' : '<span class="chip un">미검증</span>') + '</button>').join('') +
+    (res.length ? '' : '<p class="muted">검색 결과가 없습니다. 등록되지 않은 건물이면 일반 응대 문안을 사용하세요.</p>') + '</div>' +
+    '<div class="stack">' + (b ? opsPanel(b) : '<div class="card muted">왼쪽에서 건물을 고르세요.</div>') + '</div></div>';
+}
+function callerScript(b) {
+  const has = c => b.facilities.some(x => x.type === c);
+  const gen = ['지금 계신 곳에서 바로 건물 밖으로 대피하십시오. 불을 끄는 것보다 대피가 먼저입니다.', '엘리베이터는 타지 마시고 계단으로 이동하십시오.', '연기가 있으면 자세를 낮추고 코와 입을 막고 이동하십시오.', '밖으로 나오신 뒤에는 다시 들어가지 마시고 안전한 곳에서 기다려 주십시오.'];
+  const staff = [['수신기의 화재표시등과 지구표시등이 켜진 층·구역을 알려 주십시오.', 'p.7']];
+  if (has(3)) staff.push(['비상방송으로 건물 안 사람들에게 대피를 안내해 주십시오.', 'p.4 SOP 1.2.3']);
+  if (has(6)) staff.push(['가스계 소화설비 방호구역 안에 사람이 남아 있는지 확인해 주십시오. 사람이 있으면 수동으로 작동시키지 마십시오.', 'p.4 SOP 1.2.4']);
+  staff.push(['소방대가 도착하면 방재실 위치와 수신반 상태를 알려 주십시오.', 'p.4–5']);
+  return { gen, staff };
+}
+function dispatchSummary(b) {
+  const present = FT.filter(f => b.facilities.some(x => x.type === f.code));
+  const forms = f => Array.from(new Set(b.facilities.filter(x => x.type === f.code).map(x => x.form).filter(Boolean))).join('/');
+  return '[건물 소방시설 정보] ' + b.name + '\n' +
+    '주소: ' + b.address + '\n용도·규모: ' + b.use + ', 지상 ' + b.above + '층/지하 ' + b.below + '층, ' + b.area + '\n' +
+    '수신기·방재실: ' + b.receiverLoc + '\n송수구: ' + b.siameseLoc + '\n' +
+    '설비: ' + present.map(f => f.name.replace(/설비$/, '') + (forms(f) ? '(' + forms(f) + ')' : '')).join(', ') + '\n' +
+    '위험요소: ' + (b.hazards.join(' / ') || '없음') + '\n' +
+    '진입로: ' + b.approach + '\n부서: ' + b.staging + '\n' +
+    '관계자: ' + b.contacts.map(c => c.role + ' ' + c.phone).join(' / ') + '\n' +
+    '정보상태: ' + (b.verify.status === 'ok' ? '소방서 검증(' + b.verify.at + ')' : '관계자 입력·미검증') + '\n현장카드: 건물 QR 또는 단말 목록에서 열람';
+}
+function opsPanel(b) {
+  const sc = callerScript(b); const present = new Set(b.facilities.map(x => x.type));
+  if (!SESS.viewed['ops' + b.id]) { SESS.viewed['ops' + b.id] = 1; saveSess(); audit('상황실 조회', b.id, '', SESS.staff); save(); }
+  return '<div class="card stack"><div class="spread"><div><h2>' + esc(b.name) + '</h2><p class="small muted">' + esc(b.address) + '</p></div><div class="row">' + verifyChip(b) + (b.verify.status === 'ok' ? '' : '<button class="btn sm" data-act="verify" data-id="' + b.id + '">소방서 검증 처리</button>') + '</div></div>' +
+    '<div class="row" style="gap:6px">' + FT.filter(f => present.has(f.code)).map(f => '<span class="row" style="gap:4px">' + glyph(f.code) + '<span class="small">' + esc(f.name.replace(/설비$/, '')) + '</span></span>').join('') + '</div></div>' +
+    '<div class="card stack"><div class="spread"><h3>신고자 안내 · 1. 대피 우선</h3><span class="pg ext">교재 외 보충 · 본부 표준 응대 문안으로 교체·확인</span></div><ol id="sc-gen">' + sc.gen.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol><div><button class="btn sm" data-act="copy" data-target="sc-gen">문안 복사</button></div></div>' +
+    '<div class="card stack"><h3>신고자 안내 · 2. 건물 관계자(방재실 근무자)에게</h3><p class="small muted">관계자 본인이 안전할 때에만 요청합니다.</p><ol id="sc-staff">' + sc.staff.map(s => '<li>' + esc(s[0]) + ' ' + pg(s[1].replace('p.', '')) + '</li>').join('') + '</ol><div><button class="btn sm" data-act="copy" data-target="sc-staff">문안 복사</button></div></div>' +
+    '<div class="card stack"><div class="spread"><h3>출동대 전달 요약</h3><button class="btn sm pri" data-act="copy" data-target="disp">복사</button></div><div class="copybox" id="disp">' + esc(dispatchSummary(b)) + '</div></div>' +
+    '<div class="card stack"><h3>관계자 연락처</h3>' + b.contacts.map((c, i) => '<div class="call"><span>' + esc(c.role) + ' · ' + esc(c.name) + '</span><span class="num">' + esc(c.phone) + '</span></div>').join('') + '<div><button class="btn" data-act="ops-field" data-id="' + b.id + '">현장카드 열기</button></div></div>';
+}
+
+/* ================= 교재 콘텐츠 ================= */
+function manualView() {
+  const f = ft(S.man);
+  return '<div class="manual"><nav class="toc" aria-label="교재 목차">' + FT.map(x => '<button data-act="man" data-code="' + x.code + '" aria-current="' + (x.code === S.man) + '">' + glyph(x.code) + '<span>' + x.code + '. ' + esc(x.name) + '</span></button>').join('') + '</nav>' +
+    '<article class="stack"><div><span class="eyebrow">SOP 235 · ' + f.code + '장 · 교재 p.' + f.pages + ' · ' + GROUPS[f.group] + '</span><h2>' + esc(f.name) + '</h2></div><p>' + esc(f.overview) + '</p>' +
+    f.warnings.map(warnHTML).join('') +
+    '<div class="card stack"><div class="spread"><h3>SOP 요점</h3>' + pg(f.sopPage) + '</div>' + sopHTML(f) + thumbs([f.sopPage]) + '</div>' +
+    '<div class="stack"><h3>조치 카드 (적용 → 상황 → 단계 → 비상조치)</h3>' + f.procedures.map((p, i) => procHTML(p, i === 0)).join('') + '</div>' +
+    (f.tech ? '<div class="card stack"><h3>기술자료</h3>' + f.tech.map(t => '<div><b>' + esc(t[0]) + '</b> ' + pg(t[1]) + '<p class="small">' + esc(t[2]) + '</p></div>').join('') + thumbs(pagesOf(f.tech.map(t => t[1]).join(','))) + '</div>' : '') +
+    '<div class="card stack"><h3>이 장 교재 전체 쪽</h3>' + thumbs(pagesOf(f.pages), 'p.' + f.pages + ' · 누르면 크게 보기') + '</div>' +
+    '<div class="grid2"><div class="card stack"><h3>관계자용 쉬운 말</h3><p>' + esc(f.citizen) + '</p><p class="small muted">교재 내용을 시민 눈높이로 옮긴 문장입니다.</p></div><div class="card stack"><h3>평상시 확인 포인트</h3><ul>' + f.check.map(c => '<li>' + esc(c[0]) + ' ' + pg(c[1]) + '</li>').join('') + '</ul></div></div></article></div>';
+}
+
+/* ================= 설계·보안 ================= */
+function designView() {
+  const perm = [['건물명', 'O', 'O', 'O'], ['즉시 대피·119 안내', 'O', 'O', 'O'], ['수신기·송수구 위치, 위험요소', '—', 'O', 'O (자기 건물 편집)'], ['개황도·시설 위치·조작부 사진', '—', 'O', 'O (자기 건물 편집)'], ['관계자 연락처', '—', 'O (마스킹 옵션 시 "번호 보기" 기록)', 'O (편집)'], ['교재 조치 카드', '—', 'O', 'O (쉬운 말 안내)'], ['QR 토큰 재발급', '—', '—', 'O'], ['소방서 검증 처리', '—', 'O (권한자)', '—'], ['변경·열람 이력', '—', 'O', 'O (자기 건물)']];
+  return '<div class="stack" style="max-width:960px"><div><span class="eyebrow">설계 문서</span><h2>데이터 모델 · 권한 · 운영 구성</h2></div>' +
+    '<div class="card stack"><h3>권한 3단계와 공개 범위</h3><div class="tw"><table class="t"><thead><tr><th>정보</th><th>공개 (QR 일반인)</th><th>대원·상황실 (인증)</th><th>소방안전관리자</th></tr></thead><tbody>' + perm.map(r => '<tr>' + r.map((c, i) => '<td' + (i ? '' : ' style="font-weight:600"') + '>' + esc(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>' +
+    '<p class="small">QR = <span class="mono">https://(서비스주소)/#q-(무작위 16자 토큰)</span>. 토큰은 건물 ID·주소와 무관하며 재발급 시 이전 토큰은 즉시 무효. 서버는 토큰으로 건물을 찾되, 인증 세션이 없으면 공개 필드만 반환합니다(화면에서 숨기는 방식이 아니라 API에서 내려보내지 않음).</p></div>' +
+    '<div class="card stack"><h3>데이터 모델</h3><div class="tw"><table class="t"><thead><tr><th>엔터티</th><th>주요 필드</th></tr></thead><tbody><tr><td style="font-weight:700;white-space:nowrap">Building</td><td class="small">id, qr_token(무작위), name, address, use, 층수, 연면적, 구조, 수용인원, 진입로, 부서 위치, 위험요소[], 수신기·송수구 위치, verify{status, by, at}</td></tr><tr><td style="font-weight:700;white-space:nowrap">Contact</td><td class="small">building_id, role(주간/야간/안전관리자), name, phone, masked</td></tr><tr><td style="font-weight:700;white-space:nowrap">Floor</td><td class="small">building_id, name, bg_image, rooms[{label,x,y,w,h}], marks[{kind: 출입구|계단|승강기|방재실, x, y}]</td></tr><tr><td style="font-weight:700;white-space:nowrap">Facility</td><td class="small">building_id, floor_id, type_code(1~12), x, y, label, loc(위치설명), form(형식), maker, photos[], notes</td></tr><tr><td style="font-weight:700;white-space:nowrap">Inspection</td><td class="small">facility_id, date, result, items{점검포인트별 정상/이상}, memo</td></tr><tr><td style="font-weight:700;white-space:nowrap">FacilityType (교재 마스터)</td><td class="small">code 1~12 ↔ SOP 235 1~12장, name, pages, sop[], procedures[{적용, 상황, 단계, 비상조치, 쪽수}], check[], citizen</td></tr><tr><td style="font-weight:700;white-space:nowrap">AuditLog</td><td class="small">at, actor, action(편집·열람·번호 보기·재발급·검증), building_id, detail — 추가 전용</td></tr></tbody></table></div>' +
+    '<p class="small">교재 콘텐츠(FACILITY_TYPE·PROCEDURE)는 정적 마스터로 버전 관리하고, 건물 데이터와 분리합니다. 교재 개정 시 마스터만 교체하면 모든 건물 카드에 반영됩니다.</p></div>' +
+    '<div class="card stack"><h3>운영 구성 (권장 기본값)</h3><ul><li><b>프런트</b>: 모바일 우선 PWA, 정적 호스팅. 서비스워커로 앱 셸과 교재 마스터를 캐시하고, 인증된 대원 단말에는 관할 건물 카드를 암호화 저장해 오프라인 열람.</li><li><b>백엔드</b>: Supabase(PostgreSQL + Auth + Storage) 또는 Firebase. 행 수준 보안(RLS)으로 "공개 필드만" 뷰와 "인증 전체" 뷰를 DB에서 분리.</li><li><b>사진·도면</b>: 비공개 버킷 + 짧은 만료의 서명 URL. 원본 EXIF 위치정보 제거.</li><li><b>인증</b>: 대원·상황실은 기관 계정(SSO) 연계, 소방안전관리자는 본인확인 + 건물 단위 권한.</li><li><b>이력</b>: 편집·열람·번호 보기·재발급·검증을 추가 전용(append-only) 테이블에 기록.</li></ul></div>' +
+    '<div class="card stack"><div class="spread"><h3>공공기관 운영 시 확인할 것</h3><span class="pg ext">교재 외 보충 · 단정 아님</span></div><ul><li><b>개인정보</b>: 관계자 이름·전화는 개인정보입니다. 수집 목적·항목·보유기간 고지와 동의, 파기 절차, 접근권한 관리와 접속기록 보관 방안을 정해야 합니다.</li><li><b>클라우드 보안인증(CSAP)</b>: 공공기관이 민간 클라우드를 이용할 때는 CSAP 인증 서비스 여부와 등급(상·중·하)을 확인해야 합니다. 건물 내부 도면과 연락처를 다루므로 어느 등급이 요구되는지는 본부 정보보안 담당 부서와 관계 지침으로 확인하십시오. 해외 클라우드는 일부 등급에서만 인증을 받은 상태입니다.</li><li><b>보안 민감 정보</b>: 다중이용·국가중요시설은 도면 등록 범위를 별도로 정하고, 필요 시 개황도만 등록·상세 도면은 제외.</li><li><b>검증 절차</b>: 소방서 예방과(또는 관할 센터) 확인 후 "검증됨" 처리, 관계자 수정 시 자동으로 "미검증" 복귀.</li></ul></div>' +
+    '<div class="card stack"><h3>이 프로토타입의 범위</h3><ul class="small"><li>단일 HTML 파일. 데이터는 이 브라우저(localStorage)에만 저장되며 다른 기기와 공유되지 않습니다.</li><li>인증은 시연용 코드(대원 119119, 건물 PIN 1234)입니다.</li><li>예시 건물 2곳은 모두 가상입니다. 실제 건물 정보가 아닙니다.</li><li>서비스워커 오프라인 캐시는 운영 배포 단계에서 추가합니다(이 미리보기 환경에서는 등록 불가).</li></ul><div class="row"><button class="btn warn sm" data-act="reset-demo">예시 데이터로 초기화</button></div></div></div>';
+}
+
+/* ================= 렌더 후처리 ================= */
+function afterRender() {
+  if (S.view === 'mgr' && S.sub === 'qr' && S.bId && SESS.mgr[S.bId]) {
+    const b = B(S.bId); const url = qrURL(b);
+    [0, 1, 2].forEach(i => { const el = $('#qrc' + i); if (!el) return; if (window.QRCode) { try { new QRCode(el, { text: url, width: 168, height: 168, correctLevel: QRCode.CorrectLevel.M }); } catch (e) { el.textContent = 'QR 생성 실패'; } } else el.innerHTML = '<span class="small">QR 라이브러리를 불러오지 못했습니다(오프라인). 주소: ' + esc(url) + '</span>'; });
+  }
+  if (S.view === 'field' && S.fTab === 'plan' && S.fHL) { const h = $('#fplan .hl'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'center', inline: 'center' }); }
+}
+
+/* ================= 이벤트 ================= */
+document.addEventListener('click', e => {
+  if (palSuppress) { palSuppress = false; e.preventDefault(); return; }
+  const t = e.target.closest('[data-nav],[data-act],[data-sub],[data-tool],[data-ftab],[data-chk]'); if (!t) return;
+  if (t.dataset.nav) { S.view = t.dataset.nav; S.sel = null; S.fFac = null; if (S.view !== 'field') S.fromQR = false; history.replaceState(null, '', location.pathname + location.search); render(); return; }
+  if (t.dataset.sub) { S.sub = t.dataset.sub; S.sel = null; S.confirmReissue = false; render(); return; }
+  if (t.dataset.tool) { S.tool = t.dataset.tool; render(); return; }
+  if (t.dataset.ftab) { S.fTab = t.dataset.ftab; S.fFac = null; S.fHL = null; if (S.fTab !== 'fac') S.fType = null; render(); scrollTo(0, 0); return; }
+  if (t.dataset.chk != null) { const x = S.sel && S.sel.id; const d = S.inspDraft[x]; if (d) { d.items[t.dataset.chk] = d.items[t.dataset.chk] === t.dataset.v ? undefined : t.dataset.v; render(); } return; }
+  const a = t.dataset.act; const b = S.bId && B(S.bId);
+  const acts = {
+    'new-building': () => { const nb = { id: uid('b_'), token: newToken(), pin: '1234', name: '새 건물', address: '', use: '', above: '', below: '', area: '', structure: '', occupancy: '', contacts: [{ role: '주간', name: '', phone: '' }, { role: '야간', name: '', phone: '' }], mask: true, approach: '', staging: '', hazards: [], receiverLoc: '', siameseLoc: '', connector: '모름', verify: { status: 'un', by: '', at: '' }, updatedAt: nowStr(), floors: [{ id: uid('f'), name: '1F', bg: '', rooms: [], marks: [] }], facilities: [] }; DB.buildings.push(nb); SESS.mgr[nb.id] = 1; saveSess(); audit('건물 등록', nb.id); save(); S.bId = nb.id; S.sub = 'info'; render(); },
+    'open-b': () => { S.bId = t.dataset.id; S.sub = 'info'; S.sel = null; S.floorId = null; render(); },
+    'back-list': () => { S.bId = null; S.sel = null; render(); },
+    'add-ct': () => { b.contacts.push({ role: '', name: '', phone: '' }); touch(b); render(); },
+    'del-ct': () => { b.contacts.splice(+t.dataset.i, 1); touch(b); audit('연락처 삭제', b.id); save(); render(); },
+    'pick-floor': () => { S.floorId = t.dataset.id; S.sel = null; render(); },
+    'del-floor': () => { if (b.floors.length < 2) { toast('마지막 층은 삭제할 수 없습니다'); return; } if (S.pendingDel !== S.floorId) { S.pendingDel = S.floorId; toast('한 번 더 누르면 이 층과 배치된 시설이 삭제됩니다'); return; } b.facilities = b.facilities.filter(x => x.floorId !== S.floorId); b.floors = b.floors.filter(f => f.id !== S.floorId); S.floorId = null; S.pendingDel = null; touch(b); audit('층 삭제', b.id); save(); render(); },
+    'rename-floor': () => { const fl = b.floors.find(f => f.id === S.floorId); const v = ($('#nf-name').value || '').trim(); if (!v) { toast('왼쪽 입력칸에 새 층 이름을 적고 누르세요'); $('#nf-name').focus(); return; } fl.name = v; touch(b); render(); },
+    'clear-bg': () => { b.floors.find(f => f.id === S.floorId).bg = ''; touch(b); render(); },
+    'del-sel': () => { const fl = b.floors.find(f => f.id === S.floorId); if (S.sel.kind === 'fac') { b.facilities = b.facilities.filter(x => x.id !== S.sel.id); audit('시설 삭제', b.id); } else if (S.sel.kind === 'room') fl.rooms = fl.rooms.filter(x => x.id !== S.sel.id); else fl.marks = fl.marks.filter(x => x.id !== S.sel.id); S.sel = null; touch(b); save(); render(); },
+    'desel': () => { S.sel = null; render(); },
+    'del-photo': () => { const x = b.facilities.find(y => y.id === S.sel.id); x.photos.splice(+t.dataset.i, 1); touch(b); render(); },
+    'sel-fac': () => { S.sel = { kind: 'fac', id: t.dataset.id }; S.selTab = 'edit'; render(); },
+    'sel-tab': () => { S.selTab = t.dataset.t; render(); },
+    'how-modal': () => { S.modal = t.dataset.id; render(); },
+    'modal-close': () => { S.modal = null; render(); },
+    'lb': () => { S.lb = +t.dataset.p; render(); },
+    'lb-close': () => { S.lb = null; render(); },
+    'go-insp': () => { S.modal = null; S.sub = 'fac'; S.sel = { kind: 'fac', id: t.dataset.id }; S.selTab = 'edit'; render(); },
+    'save-insp': () => { const x = b.facilities.find(y => y.id === t.dataset.id); const d = S.inspDraft[x.id]; d.date = $('#in-date').value || today(); d.memo = $('#in-memo').value; const vals = Object.values(d.items).filter(Boolean); const res = $('#in-res').value === '조치완료' ? '조치완료' : vals.indexOf('x') > -1 ? '이상' : vals.length ? '정상' : '기록'; x.insp.unshift({ date: d.date, result: res, memo: d.memo, items: Object.assign({}, d.items) }); delete S.inspDraft[x.id]; b.updatedAt = nowStr(); audit('점검 기록', b.id, x.label + ' · ' + res); save(); toast('점검 결과를 저장했습니다'); render(); },
+    'ask-reissue': () => { S.confirmReissue = true; render(); },
+    'cancel-reissue': () => { S.confirmReissue = false; render(); },
+    'reissue': () => { b.token = newToken(); S.confirmReissue = false; audit('QR 토큰 재발급', b.id, '이전 QR 무효'); save(); toast('재발급했습니다. 새 라벨로 교체하세요'); render(); },
+    'sim-scan': () => { location.hash = 'q-' + b.token; },
+    'pub-to-staff': () => { const bb = DB.buildings.find(x => x.token === S.qrToken); S.view = 'field'; S.bId = bb ? bb.id : null; S.fromQR = true; S.fTab = 'home'; render(); },
+    'logout-staff': () => { SESS.staff = ''; SESS.viewed = {}; saveSess(); render(); },
+    'field-open': () => { S.bId = t.dataset.id; S.fTab = 'home'; S.fFac = null; render(); },
+    'hc': () => { S.hc = !S.hc; render(); },
+    'reveal': () => { S.reveal = S.reveal || {}; S.reveal[b.id + t.dataset.i] = 1; audit('관계자 번호 보기', b.id, b.contacts[+t.dataset.i].role, SESS.staff); save(); render(); },
+    'copy-num': () => { copyText(b.contacts[+t.dataset.i].phone, $('#num' + t.dataset.i)); },
+    'field-type': () => { const code = +t.dataset.code; const xs = b.facilities.filter(x => x.type === code); if (xs.length === 1) { S.fFac = xs[0].id; } else { S.fTab = 'fac'; S.fType = code; S.fFac = null; } render(); scrollTo(0, 0); },
+    'clear-ftype': () => { S.fType = null; render(); },
+    'field-fac': () => { S.fFac = t.dataset.id; render(); scrollTo(0, 0); },
+    'field-back': () => { S.fFac = null; render(); },
+    'field-show-plan': () => { const x = b.facilities.find(y => y.id === t.dataset.id); S.fFac = null; S.fTab = 'plan'; S.fFloor = x.floorId; S.fHL = x.id; render(); },
+    'field-floor': () => { S.fFloor = t.dataset.id; S.fHL = null; render(); },
+    'show-all-procs': () => { const f = ft(t.dataset.code); const box = t; box.insertAdjacentHTML('afterend', f.procedures.filter(p => relevantProcs(f, b.facilities.find(x => x.id === S.fFac).form).indexOf(p) < 0).map(p => procHTML(p, false)).join('')); box.remove(); },
+    'ops-pick': () => { S.opsB = t.dataset.id; render(); },
+    'ops-field': () => { S.view = 'field'; S.bId = t.dataset.id; S.fTab = 'home'; S.fFac = null; render(); },
+    'verify': () => { const bb = B(t.dataset.id); bb.verify = { status: 'ok', by: SESS.staff, at: today() }; audit('소방서 검증', bb.id, '', SESS.staff); save(); toast('검증됨으로 표시했습니다'); render(); },
+    'copy': () => { const el = $('#' + t.dataset.target); copyText(el.innerText, el); },
+    'man': () => { S.man = +t.dataset.code; render(); scrollTo(0, 0); },
+    'reset-demo': () => { if (!S.resetArm) { S.resetArm = 1; toast('한 번 더 누르면 이 기기의 모든 입력이 지워집니다'); return; } DB = seed(); save(); S.resetArm = 0; S.bId = null; toast('초기화했습니다'); render(); }
+  };
+  if (acts[a]) { e.preventDefault(); acts[a](); }
+});
+
+document.addEventListener('submit', e => {
+  e.preventDefault(); const id = e.target.id;
+  if (id === 'mgr-login') { const b = B(S.bId); if ($('#mgr-pin').value === b.pin) { SESS.mgr[b.id] = 1; saveSess(); render(); } else toast('PIN이 맞지 않습니다'); }
+  if (id === 'staff-login') { const n = $('#st-name').value.trim(); if ($('#st-code').value !== '119119') { toast('인증 코드가 맞지 않습니다'); return; } if (!n) { toast('소속·이름을 적어 주세요(열람 기록에 남습니다)'); return; } SESS.staff = n; saveSess(); render(); }
+  if (id === 'add-floor') { const b = B(S.bId); const v = $('#nf-name').value.trim(); if (!v) { toast('층 이름을 적어 주세요'); return; } const f = { id: uid('f'), name: v, bg: '', rooms: [], marks: [] }; b.floors.push(f); S.floorId = f.id; touch(b); audit('층 추가', b.id, v); save(); render(); }
+});
+
+let editT;
+document.addEventListener('input', e => {
+  const t = e.target; const b = S.bId && B(S.bId);
+  if (t.id === 'ops-q') { S.opsQ = t.value; const pos = t.selectionStart; render(); const n = $('#ops-q'); n.focus(); n.setSelectionRange(pos, pos); return; }
+  if (!b) return;
+  if (t.dataset.bf) { const k = t.dataset.bf; b[k] = k === 'hazards' ? t.value.split('\n').map(s => s.trim()).filter(Boolean) : k === 'mask' ? t.checked : t.value; touch(b); clearTimeout(editT); editT = setTimeout(() => { audit('건물 개황 수정', b.id, k); save(); }, 1200); }
+  if (t.dataset.ct != null) { b.contacts[+t.dataset.ct][t.dataset.k] = t.value; touch(b); }
+  if (t.dataset.fx) { const x = b.facilities.find(y => y.id === S.sel.id); x[t.dataset.fx] = t.value; touch(b); if (t.dataset.fx === 'floorId') { S.floorId = t.value; render(); } else { clearTimeout(editT); editT = setTimeout(() => { audit('시설 정보 수정', b.id, x.label); save(); const svg = $('#plan'); if (svg && S.sub === 'plan') svg.outerHTML = planSVG(b, b.floors.find(f => f.id === S.floorId)); }, 800); } }
+  if (t.hasAttribute('data-sel-label')) { const fl = b.floors.find(f => f.id === S.floorId); const it = (S.sel.kind === 'room' ? fl.rooms : fl.marks).find(x => x.id === S.sel.id); it.label = t.value; touch(b); const svg = $('#plan'); if (svg) svg.outerHTML = planSVG(b, fl); }
+});
+document.addEventListener('change', e => {
+  const t = e.target; const b = S.bId && B(S.bId);
+  if (t.type === 'checkbox' && t.dataset.bf) { b.mask = t.checked; touch(b); audit('연락처 마스킹 ' + (t.checked ? '켬' : '끔'), b.id); save(); }
+  if (t.id === 'bg-file' && t.files[0]) readImg(t.files[0], 1400, url => { b.floors.find(f => f.id === S.floorId).bg = url; touch(b); audit('개황도 배경 등록', b.id); save(); render(); });
+  if (t.id === 'ph-file' && t.files[0]) readImg(t.files[0], 900, url => { const x = b.facilities.find(y => y.id === S.sel.id); x.photos.push(url); touch(b); audit('조작부 사진 추가', b.id, x.label); save(); render(); });
+});
+function readImg(file, max, cb) {
+  const fr = new FileReader(); fr.onload = () => { const im = new Image(); im.onload = () => { const r = Math.min(1, max / Math.max(im.width, im.height)); const c = document.createElement('canvas'); c.width = Math.round(im.width * r); c.height = Math.round(im.height * r); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); cb(c.toDataURL('image/jpeg', .72)); }; im.onerror = () => toast('이미지를 읽지 못했습니다'); im.src = fr.result; }; fr.readAsDataURL(file);
+}
+
+/* ---------- 개황도 포인터 ---------- */
+let drag = null;
+const snap = v => Math.round(v / 10) * 10;
+function svgPt(svg, e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const m = svg.getScreenCTM(); if (!m) return { x: 0, y: 0 }; const q = p.matrixTransform(m.inverse()); return { x: Math.max(0, Math.min(VW, q.x)), y: Math.max(0, Math.min(VH, q.y)) }; }
+document.addEventListener('pointerdown', e => {
+  const svg = e.target.closest('svg.plan'); if (!svg) return;
+  const g = e.target.closest('.mk');
+  if (S.view === 'field') { if (g && g.dataset.kind === 'fac') { S.fFac = g.dataset.id; render(); scrollTo(0, 0); } return; }
+  if (S.view !== 'mgr') return;
+  const b = B(S.bId); const fl = b.floors.find(f => f.id === S.floorId); const pt = svgPt(svg, e);
+  if (S.tool === 'select') {
+    if (!g) { if (S.sel) { S.sel = null; render(); } return; }
+    const kind = g.dataset.kind, id = g.dataset.id;
+    const it = kind === 'fac' ? b.facilities.find(x => x.id === id) : (kind === 'room' ? fl.rooms : fl.marks).find(x => x.id === id);
+    if (kind === 'fac' && (!S.sel || S.sel.id !== id)) S.selTab = 'how';
+    S.sel = { kind, id }; drag = { it, ox: pt.x - it.x, oy: pt.y - it.y, moved: false };
+    svg.setPointerCapture(e.pointerId); svg.innerHTML = $('#plan', wrapTmp(planSVG(b, fl))).innerHTML; refreshSide(b, fl); return;
+  }
+  if (S.tool === 'room') { const r = { id: uid('r'), label: '구획', x: snap(pt.x), y: snap(pt.y), w: 10, h: 10 }; fl.rooms.push(r); drag = { room: r, sx: snap(pt.x), sy: snap(pt.y) }; svg.setPointerCapture(e.pointerId); return; }
+  if (LANDMARKS[S.tool] || S.tool.indexOf('fac') === 0) addAt(S.tool, pt);
+});
+function addAt(tool, pt) {
+  const b = B(S.bId); const fl = b.floors.find(f => f.id === S.floorId);
+  if (LANDMARKS[tool]) { const m = { id: uid('m'), kind: tool, x: snap(pt.x), y: snap(pt.y), label: LANDMARKS[tool].name }; fl.marks.push(m); S.sel = { kind: 'mark', id: m.id }; S.tool = 'select'; touch(b); render(); const l = $('#sel-label'); if (l) l.select(); return; }
+  const code = +tool.slice(3); const x = { id: uid('x'), type: code, floorId: fl.id, x: snap(pt.x), y: snap(pt.y), label: ft(code).name, loc: '', form: '', maker: '', notes: '', photos: [], insp: [] };
+  b.facilities.push(x); S.sel = { kind: 'fac', id: x.id }; S.selTab = 'edit'; S.tool = 'select'; touch(b); audit('시설 배치', b.id, x.label); save(); render(); toast(ft(code).name + ' 추가 — 이름·위치·형식을 입력하세요'); const l = $('#fx-label'); if (l) l.select();
+}
+/* ---------- 도구 막대 → 개황도 끌어다 놓기 (마우스·터치 공통) ---------- */
+let pal = null, palSuppress = false;
+document.addEventListener('pointerdown', e => {
+  const t = e.target.closest('.tool[data-tool]'); if (!t || S.view !== 'mgr') return;
+  const tool = t.dataset.tool; if (tool === 'select' || tool === 'room') return;
+  pal = { tool, sx: e.clientX, sy: e.clientY, ghost: null, html: t.querySelector('.fg,.lmk').outerHTML };
+}, true);
+document.addEventListener('pointermove', e => {
+  if (!pal) return;
+  if (!pal.ghost) { if (Math.hypot(e.clientX - pal.sx, e.clientY - pal.sy) < 6) return; const g = document.createElement('div'); g.className = 'dragghost'; g.innerHTML = pal.html; document.body.appendChild(g); pal.ghost = g; const w = $('.planwrap'); if (w) w.classList.add('droppable'); }
+  e.preventDefault();
+  pal.ghost.style.left = e.clientX + 'px'; pal.ghost.style.top = e.clientY + 'px';
+  const over = document.elementFromPoint(e.clientX, e.clientY); const w = $('.planwrap'); if (w) w.classList.toggle('over', !!(over && over.closest('svg.plan')));
+}, { passive: false });
+function palEnd(e) {
+  if (!pal) return; const p = pal; pal = null;
+  if (!p.ghost) return;
+  p.ghost.remove(); palSuppress = true; setTimeout(() => palSuppress = false, 400);
+  const w = $('.planwrap'); if (w) w.classList.remove('droppable', 'over');
+  const over = e && e.type === 'pointerup' ? document.elementFromPoint(e.clientX, e.clientY) : null; const svg = over && over.closest('svg.plan');
+  if (svg) addAt(p.tool, svgPt(svg, e)); else toast('개황도 안에 놓아야 추가됩니다');
+}
+document.addEventListener('pointerup', palEnd, true);
+document.addEventListener('pointercancel', palEnd, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && (S.lb || S.modal)) { if (S.lb) S.lb = null; else S.modal = null; render(); } });
+function wrapTmp(html) { const d = document.createElement('div'); d.innerHTML = html; return d; }
+function refreshSide(b, fl) { const as = $('.mgr > aside'); if (as) as.innerHTML = selPanel(b, fl); }
+document.addEventListener('pointermove', e => {
+  if (!drag) return; const svg = $('#plan'); if (!svg) return; const pt = svgPt(svg, e); const b = B(S.bId); const fl = b.floors.find(f => f.id === S.floorId);
+  if (drag.room) { const r = drag.room; r.x = Math.min(drag.sx, snap(pt.x)); r.y = Math.min(drag.sy, snap(pt.y)); r.w = Math.max(10, Math.abs(snap(pt.x) - drag.sx)); r.h = Math.max(10, Math.abs(snap(pt.y) - drag.sy)); }
+  else { drag.it.x = snap(pt.x - drag.ox); drag.it.y = snap(pt.y - drag.oy); drag.moved = true; }
+  svg.innerHTML = wrapTmp(planSVG(b, fl)).firstChild.innerHTML;
+});
+document.addEventListener('pointerup', () => {
+  if (!drag) return; const b = B(S.bId); const fl = b.floors.find(f => f.id === S.floorId);
+  if (drag.room) { if (drag.room.w < 30 || drag.room.h < 30) fl.rooms = fl.rooms.filter(r => r !== drag.room); else { S.sel = { kind: 'room', id: drag.room.id }; touch(b); } drag = null; render(); const l = $('#sel-label'); if (l) l.select(); return; }
+  if (drag.moved) { touch(b); }
+  drag = null; render();
+});
+
+/* ---------- 해시(QR) ---------- */
+function onHash() {
+  const h = location.hash.replace('#', '');
+  if (h.indexOf('q-') === 0) {
+    S.qrToken = h.slice(2); const b = DB.buildings.find(x => x.token === S.qrToken);
+    if (b && SESS.staff) { S.view = 'field'; S.bId = b.id; S.fromQR = true; S.fTab = 'home'; S.fFac = null; }
+    else S.view = 'pub';
+    render(); scrollTo(0, 0);
+  }
+}
+window.addEventListener('hashchange', onHash);
+if (location.hash.indexOf('#q-') === 0) onHash(); else render();
+</script>
+
+</body></html>
